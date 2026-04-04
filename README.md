@@ -1,1 +1,1 @@
-# cpp-risk-analyzer
+A static analysis tool that identifies high-risk files in large C++ codebases by combining structural dependency analysis, Git churn history, and graph centrality into a single, normalised risk score.
