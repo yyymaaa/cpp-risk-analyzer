@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# C++
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Environment and secrets
+.env
+.env.local
+.env.production
+
+# MySQL
+*.sql.bak
+
+# VSCode
+.vscode/settings.json
+.vscode/launch.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data outputs (too large for git)
+data/output/*.json
+data/output/*.csv
+
+# Logs
+*.log
+logs/
