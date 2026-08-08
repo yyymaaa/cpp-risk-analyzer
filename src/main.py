@@ -3,27 +3,42 @@ import sys
 
 from scanner import scan_repository
 from parser import extract_includes
+from graph_builder import build_dependency_graph
 
 if len(sys.argv) < 2:
     print("Usage:")
-    print("python main.py <repository>")
+    print("python src/main.py <repository>")
     sys.exit(1)
 
 repository = Path(sys.argv[1])
 
 if not repository.is_dir():
-    print("Invalid repository.")
+    print(f"Error: {repository} is not a valid directory")
     sys.exit(1)
 
 files = scan_repository(repository)
+print(f"Found {len(files)} C++ files.")
+
+dependencies = {}
 
 for file in files:
     includes = extract_includes(file)
-    print(file.relative_to(repository))
+    dependencies[file] = includes
 
-    for include in includes:
-        print("   ->", include)
+graph = build_dependency_graph(
+    repository,
+    files,
+    dependencies
+)
 
-    print()
+print(f"Graph contains {graph.number_of_nodes()} nodes.")
+print(f"Graph contains {graph.number_of_edges()} edges.")
+
+print("\nSample dependency relationships:")
+
+for source, target in list(graph.edges())[:20]:
+    print(f"{source} -> {target}")
+
+
 
     

@@ -7,7 +7,7 @@ def extract_includes(file_path: Path) -> list[str]:
         for line in file:
             line = line.strip()
 
-            if line.startswith('"#include "'): # " because of lines like #include <vector>, we do not want to extract that
+            if line.startswith('#include "'): # " because of lines like #include <vector>, we do not want to extract that
                 parts = line.split('"')
 
                 if len(parts) >= 2:
