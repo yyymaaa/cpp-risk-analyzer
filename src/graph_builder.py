@@ -15,7 +15,7 @@ def build_dependency_graph(
         graph.add_node(relative_path)
 
     for source_file, includes in dependencies.items():
-        source_file.relative_to(repository).as_posix()
+        source = source_file.relative_to(repository).as_posix()
 
         for include in includes:
             result = resolve_include(

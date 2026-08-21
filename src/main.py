@@ -41,7 +41,7 @@ print(f"Graph contains {graph.number_of_edges()} edges.")
 
 print("\nSample dependency relationships:")
 
-for source, target in list(graph.edges())[:20]:
+for source, target, data in list(graph.edges(data=True))[:20]:
     print(
         f"{source} -> {target}"
         f"(line {data['line']})"

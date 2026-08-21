@@ -19,7 +19,7 @@ def resolve_include(
     include_path = Path(include.path)
 
     if include.delimiter == "<":
-        candidate_paths = candidate_paths(
+        candidate_paths = _candidate_paths(
             include_path,
             source_file,
             repository,
@@ -36,6 +36,24 @@ def resolve_include(
             status="external",
             target=None,
         )
+
+    candidate_paths = _candidate_paths(
+        include_path,
+        source_file,
+        repository,
+    )
+
+    for candidate in candidate_paths:
+        if candidate.is_file():
+            return ResolutionResult(
+                status="internal",
+                target=candidate.resolve(),
+            )
+
+    return ResolutionResult(
+        status="unresolved",
+        target=None,
+    )
 
 def _candidate_paths(
         include_path: Path,
