@@ -10,7 +10,7 @@ if len(sys.argv) < 2:
     print("python src/main.py <repository>")
     sys.exit(1)
 
-repository = Path(sys.argv[1])
+repository = Path(sys.argv[1]).resolve()
 
 if not repository.is_dir():
     print(f"Error: {repository} is not a valid directory")
@@ -21,9 +21,14 @@ print(f"Found {len(files)} C++ files.")
 
 dependencies = {}
 
+total_includes = 0
+
 for file in files:
     includes = extract_includes(file)
     dependencies[file] = includes
+    total_includes = len(includes)
+
+print(f"Found {total_includes} include directives.")
 
 graph = build_dependency_graph(
     repository,
@@ -37,7 +42,10 @@ print(f"Graph contains {graph.number_of_edges()} edges.")
 print("\nSample dependency relationships:")
 
 for source, target in list(graph.edges())[:20]:
-    print(f"{source} -> {target}")
+    print(
+        f"{source} -> {target}"
+        f"(line {data['line']})"
+    )
 
 
 
