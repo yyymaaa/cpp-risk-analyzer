@@ -30,8 +30,9 @@ def build_dependency_graph(
                 graph.add_edge(
                     source,
                     target,
-                    relationship="inlcude",
+                    relationship="include",
                     line=include.line_number,
+                    relationship_type = 'internal',
                     include_path=include.path,
                     delimiter=include.delimiter,
                 )

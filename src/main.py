@@ -1,9 +1,11 @@
 from pathlib import Path
 import sys
+import json
 
 from scanner import scan_repository
 from parser import extract_includes
 from graph_builder import build_dependency_graph
+from validator import GraphValidator
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -20,13 +22,12 @@ files = scan_repository(repository)
 print(f"Found {len(files)} C++ files.")
 
 dependencies = {}
-
 total_includes = 0
 
 for file in files:
     includes = extract_includes(file)
     dependencies[file] = includes
-    total_includes = len(includes)
+    total_includes += len(includes)
 
 print(f"Found {total_includes} include directives.")
 
@@ -46,6 +47,11 @@ for source, target, data in list(graph.edges(data=True))[:20]:
         f"{source} -> {target}"
         f"(line {data['line']})"
     )
+
+print("Graph Validation")
+validator = GraphValidator(graph)
+report = validator.generate_report()
+print(report)
 
 
 
