@@ -6,6 +6,7 @@ from scanner import scan_repository
 from parser import extract_includes
 from graph_builder import build_dependency_graph
 from validator import GraphValidator
+from analyzer import StructuralAnalyzer
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -53,6 +54,10 @@ validator = GraphValidator(graph)
 report = validator.generate_report()
 print(report)
 
+print("\nStructural Dependency Analysis")
+analyzer = StructuralAnalyzer(graph)
+output_file = analyzer.export_metrics()
+print(f"Success! Structural metrics exported to: {output_file}")
 
 
     

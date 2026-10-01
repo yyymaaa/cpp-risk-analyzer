@@ -51,3 +51,5 @@ data/output/*.csv
 # Logs
 *.log
 logs/
+
+structural_metrics.json
