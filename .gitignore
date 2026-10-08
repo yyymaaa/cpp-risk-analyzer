@@ -62,4 +62,6 @@ git_miner
 
 structural_metrics.json
 semantic_dependencies.json
+semantic_dependencies.json
+commit_log.json
 

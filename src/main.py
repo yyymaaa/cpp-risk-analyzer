@@ -8,6 +8,7 @@ from graph_builder import build_dependency_graph
 from validator import GraphValidator
 from analyzer import StructuralAnalyzer
 from semantic_analyzer import SemanticAnalyzer
+from git_analyzer import GitAnalyzer
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -64,4 +65,9 @@ print("\nSemantic C++ Dependency Analysis")
 semantic_analyzer = SemanticAnalyzer(repository, graph)
 semantic_output = semantic_analyzer.export_semantics()
 print(f"Success! Semantic features exported to: {semantic_output}")
+
+print("\nHistorical Git Mining")
+git_analyzer = GitAnalyzer(repository)
+git_output = git_analyzer.export_history()
+print(f"Success! Raw commit log exported to: {git_output}")
     
