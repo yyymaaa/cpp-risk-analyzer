@@ -52,4 +52,14 @@ data/output/*.csv
 *.log
 logs/
 
+# C++ Compilation Artifacts
+semantic_parser
+git_miner
+*.o
+*.out
+*.a
+*.so
+
 structural_metrics.json
+semantic_dependencies.json
+

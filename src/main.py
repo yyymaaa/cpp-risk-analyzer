@@ -7,6 +7,7 @@ from parser import extract_includes
 from graph_builder import build_dependency_graph
 from validator import GraphValidator
 from analyzer import StructuralAnalyzer
+from semantic_analyzer import SemanticAnalyzer
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -59,5 +60,8 @@ analyzer = StructuralAnalyzer(graph)
 output_file = analyzer.export_metrics()
 print(f"Success! Structural metrics exported to: {output_file}")
 
-
+print("\nSemantic C++ Dependency Analysis")
+semantic_analyzer = SemanticAnalyzer(repository, graph)
+semantic_output = semantic_analyzer.export_semantics()
+print(f"Success! Semantic features exported to: {semantic_output}")
     
