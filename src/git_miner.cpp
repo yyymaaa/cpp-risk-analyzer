@@ -2,6 +2,7 @@
 #include <git2.h>
 #include <map>
 #include <string>
+#include <vector>
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -26,12 +27,21 @@ int main(int argc, char** argv) {
     git_revwalk_push_head(walker);
 
     git_oid oid;
-    std::map<std::string, int> file_churn;
+    std::cout << "[\n";
+    bool first_commit = true;
+
 
     // Loop through every single commit in the repository's history
     while (git_revwalk_next(&oid, walker) == 0) {
         git_commit *commit = nullptr;
         if (git_commit_lookup(&commit, repo, &oid) == 0) {
+            const git_signature *author = git_commit_author(commit);
+            git_time_t time = git_commit_time(commit);
+
+            char oid_str[GIT_OID_HEXSZ +1];
+            git_oid_tostr(oid_str, sizeof(oid_str), &oid);
+
+            std::vector<std::string> files;
             git_tree *tree = nullptr; 
             git_commit_tree(&tree, commit);
 
@@ -54,8 +64,23 @@ int main(int argc, char** argv) {
                 if (path.find(".cc") != std::string::npos ||
                     path.find(".h") != std::string::npos ||
                     path.find(".cpp") != std::string::npos) {
-                        file_churn[path]++;
+                        files.push_back(path);
                 }
+            }
+
+            if (!files.empty()) {
+                if (!first_commit) std::cout << ",\n";
+                std::cout << "  {\n";
+                std::cout << "    \"id\": \"" << oid_str << "\",\n";
+                std::cout << "    \"author\": \"" << author->name << "\",\n";
+                std::cout << "    \"timestamp\": " << time << ",\n";
+                std::cout << "    \"files\": [";
+                for (size_t i = 0; i < files.size(); i++) {
+                    std::cout << "\"" << files[i] << "\"";
+                    if (i < files.size() - 1) std::cout << ", ";
+                }
+                std::cout << "]\n  }";
+                first_commit = false;
             }
 
             // manually free memory for this specific commit cycle
@@ -66,21 +91,10 @@ int main(int argc, char** argv) {
             git_commit_free(commit);
         }
     }
-
-    // clean the core git structures
+    
+    std::cout << "\n]\n";
     git_revwalk_free(walker);
     git_repository_free(repo);
     git_libgit2_shutdown();
-
-    // output the compiled Churn metrics as JSON
-    std::cout << "{\n \"churn\": {\n";
-    bool first = true;
-    for (auto const& [file, count] : file_churn) {
-        if (!first) std::cout << ",\n";
-        std::cout << "  \"" << file << "\": " << count;
-        first = false;
-    }
-    std::cout << "\n }\n}\n";
-
     return 0;
 }
