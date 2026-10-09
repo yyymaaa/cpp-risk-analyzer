@@ -67,4 +67,12 @@ semantic_dependencies.json
 commit_log.json
 db_config.json
 training_dataset.csv
-git_miner.cpp.bak
+training_dataset.csv
+training_dataset_historical_test.csv
+training_dataset_historical_purged.csv
+
+# Local backups
+*.bak
+*.pre_*_verification.bak
+*.csv
+

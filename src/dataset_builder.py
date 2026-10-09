@@ -7,6 +7,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from historical_graph import historical_graph
+from analyzer import StructuralAnalyzer
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_PATH = Path("/home/ojuka/Desktop/leveldb")
@@ -15,8 +18,6 @@ LOOKBACK_DAYS = 365
 HORIZON_DAYS = 90
 STEP_DAYS = 90
 
-# Candidate corrective changes, identified from commit subjects.
-# This is a weak label, not verified defect ground truth.
 CORRECTIVE_PATTERN = re.compile(
     r"\b(?:fix(?:es|ed|ing)?|bug(?:s|fix(?:es)?)?|"
     r"crash(?:es|ed)?|leak(?:s|ed)?|race(?:s)?|"
@@ -105,7 +106,7 @@ class TemporalDatasetBuilder:
 
         save_current()
 
-        # Retain commits touching files in the current structural graph.
+        # Preserve the existing label/activity scope for this iteration.
         for commit in commits:
             commit["files"] &= self.current_files
 
@@ -119,7 +120,7 @@ class TemporalDatasetBuilder:
 
         return commits
 
-    def build(self):
+    def build(self, output_path=None):
         commits = self.read_git_history()
 
         lookback = LOOKBACK_DAYS * 86400
@@ -129,8 +130,6 @@ class TemporalDatasetBuilder:
         first_timestamp = min(c["timestamp"] for c in commits)
         last_timestamp = max(c["timestamp"] for c in commits)
 
-        # Every snapshot has a full year of possible history and a full
-        # 90-day future outcome window.
         first_cutoff = first_timestamp + lookback
         last_cutoff = last_timestamp - horizon
 
@@ -147,7 +146,6 @@ class TemporalDatasetBuilder:
                 "at least five are required for a chronological split."
             )
 
-        # First time each current file appears in the available Git history.
         first_seen = {}
         for commit in commits:
             for path in commit["files"]:
@@ -157,6 +155,7 @@ class TemporalDatasetBuilder:
                 )
 
         rows = []
+        snapshots_built = 0
 
         for cutoff in cutoffs:
             history_start = cutoff - lookback
@@ -172,7 +171,22 @@ class TemporalDatasetBuilder:
                 and c["corrective"]
             ]
 
-            # Historical file activity, corrective activity and co-change.
+            # Reconstruct structural features as of this exact cutoff.
+            commit_id, graph = historical_graph(
+                self.repo_path, cutoff
+            )
+            metrics_by_path = StructuralAnalyzer(
+                graph
+            ).calculate_metrics()
+            snapshots_built += 1
+
+            print(
+                f"Snapshot {snapshots_built}/{len(cutoffs)}: "
+                f"{datetime.fromtimestamp(cutoff, tz=timezone.utc).isoformat()} "
+                f"commit={commit_id[:12]} "
+                f"nodes={graph.number_of_nodes()}"
+            )
+
             file_commits = defaultdict(int)
             file_corrective = defaultdict(int)
             file_cochanges = defaultdict(set)
@@ -197,8 +211,6 @@ class TemporalDatasetBuilder:
                             file_cochanges[path].add(other)
                             file_cochange_events[path] += 1
 
-            # The target is based only on corrective-keyword commits
-            # inside the future window.
             future_positive = set()
             for commit in future_corrective:
                 future_positive.update(commit["files"])
@@ -208,11 +220,15 @@ class TemporalDatasetBuilder:
             ).date().isoformat()
 
             for path in sorted(self.current_files):
-                # Do not predict a file before its first observed appearance.
                 if first_seen.get(path, last_timestamp + 1) > cutoff:
                     continue
 
-                metrics = self.structural[path]
+                # A current file may not exist in this historical snapshot.
+                # Do not assign it structural metrics from today's graph.
+                metrics = metrics_by_path.get(path)
+                if metrics is None:
+                    continue
+
                 previous_change = last_change.get(path)
 
                 rows.append({
@@ -221,7 +237,9 @@ class TemporalDatasetBuilder:
                     "fan_in": numeric_metric(metrics, "fan_in"),
                     "fan_out": numeric_metric(metrics, "fan_out"),
                     "pagerank": numeric_metric(metrics, "pagerank"),
-                    "betweenness": numeric_metric(metrics, "betweenness"),
+                    "betweenness": numeric_metric(
+                        metrics, "betweeness_centrality"
+                    ),
                     "historical_commit_count_365d": file_commits[path],
                     "historical_corrective_count_365d": file_corrective[path],
                     "historical_cochange_file_count_365d": len(
@@ -230,7 +248,10 @@ class TemporalDatasetBuilder:
                     "historical_cochange_event_count_365d":
                         file_cochange_events[path],
                     "days_since_last_change": (
-                        min(LOOKBACK_DAYS, (cutoff - previous_change) // 86400)
+                        min(
+                            LOOKBACK_DAYS,
+                            (cutoff - previous_change) // 86400,
+                        )
                         if previous_change is not None
                         else LOOKBACK_DAYS
                     ),
@@ -239,10 +260,20 @@ class TemporalDatasetBuilder:
                     ),
                 })
 
+        if not rows:
+            raise ValueError(
+                "No dataset rows were generated. Check historical paths "
+                "and graph reconstruction."
+            )
+
         df = pd.DataFrame(rows)
 
-        # Chronological split: later snapshots are held out from training.
         unique_dates = sorted(df["cutoff_date"].unique())
+        if len(unique_dates) < 2:
+            raise ValueError(
+                "At least two distinct snapshot dates are required to split."
+            )
+
         split_index = max(1, int(len(unique_dates) * 0.8))
         split_index = min(split_index, len(unique_dates) - 1)
         test_start = unique_dates[split_index]
@@ -251,34 +282,46 @@ class TemporalDatasetBuilder:
             lambda d: "test" if d >= test_start else "train"
         )
 
-        self.output_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self.output_path, index=False)
+        destination = (
+            Path(output_path) if output_path is not None
+            else self.output_path
+        )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(destination, index=False)
 
-        print(f"Git commits parsed: {len(commits)}")
+        print(f"\nGit commits parsed: {len(commits)}")
         print(f"Current structural files: {len(self.current_files)}")
-        print(f"Temporal snapshots: {len(unique_dates)}")
+        print(f"Temporal snapshots built: {snapshots_built}")
+        print(f"Snapshots represented in dataset: {len(unique_dates)}")
         print(f"Dataset rows: {len(df)}")
         print(f"Distinct files represented: {df['file_path'].nunique()}")
         print(f"Training rows: {(df['split'] == 'train').sum()}")
         print(f"Test rows: {(df['split'] == 'test').sum()}")
         print(
             "Positive training labels:",
-            int(df.loc[df["split"] == "train",
-                       "future_corrective_change_90d"].sum()),
+            int(df.loc[
+                df["split"] == "train",
+                "future_corrective_change_90d"
+            ].sum()),
         )
         print(
             "Positive test labels:",
-            int(df.loc[df["split"] == "test",
-                       "future_corrective_change_90d"].sum()),
+            int(df.loc[
+                df["split"] == "test",
+                "future_corrective_change_90d"
+            ].sum()),
         )
         print(f"Test period starts: {test_start}")
-        print(f"Saved dataset: {self.output_path}")
+        print(f"Saved dataset: {destination}")
 
         print("\nLabel distribution by split:")
-        print(pd.crosstab(df["split"], df["future_corrective_change_90d"]))
+        print(pd.crosstab(
+            df["split"], df["future_corrective_change_90d"]
+        ))
 
         return df
 
 
 if __name__ == "__main__":
     TemporalDatasetBuilder().build()
+
