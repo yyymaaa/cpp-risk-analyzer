@@ -66,3 +66,5 @@ semantic_dependencies.json
 semantic_dependencies.json
 commit_log.json
 db_config.json
+training_dataset.csv
+git_miner.cpp.bak

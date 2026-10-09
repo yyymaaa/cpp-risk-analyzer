@@ -10,6 +10,7 @@ from analyzer import StructuralAnalyzer
 from semantic_analyzer import SemanticAnalyzer
 from git_analyzer import GitAnalyzer
 from db_loader import DatabaseLoader
+from dataset_builder import TemporalDatasetBuilder
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -79,3 +80,9 @@ db_loader.load_semantic_data()
 db_loader.load_git_data()
 db_loader.close()
 print("Success! All JSON artifacts normalized and ingested into MySQL.")
+
+print("\nTemporal Dataset Construction & Risk Labeling")
+from dataset_builder import TemporalDatasetBuilder
+dataset_builder = TemporalDatasetBuilder()
+dataset_builder.build_and_export()
+print("Success! Training dataset constructed and exported.")

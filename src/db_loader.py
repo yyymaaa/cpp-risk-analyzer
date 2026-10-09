@@ -22,56 +22,63 @@ class DatabaseLoader:
         )
         self.create_tables()
 
+    
     def create_tables(self):
+        """Create missing tables and migrate semantic columns without dropping data."""
         with self.connection.cursor() as cursor:
-            # Drop old tables to ensure a clean slate on re-runs
-            cursor.execute("DROP TABLE IF EXISTS commit_files;")
-            cursor.execute("DROP TABLE IF EXISTS commits;")
-            cursor.execute("DROP TABLE IF EXISTS semantic_dependencies;")
-            cursor.execute("DROP TABLE IF EXISTS structural_metrics;")
-
-            # 1. Structural Metrics Table
             cursor.execute("""
-                CREATE TABLE structural_metrics (
+                CREATE TABLE IF NOT EXISTS structural_metrics (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     file_path VARCHAR(255) NOT NULL,
                     fan_in INT,
                     fan_out INT,
                     pagerank FLOAT,
                     betweenness FLOAT
-                );
+                )
             """)
-
-            # 2. Semantic Dependencies Table
             cursor.execute("""
-                CREATE TABLE semantic_dependencies (
+                CREATE TABLE IF NOT EXISTS semantic_dependencies (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     source_file VARCHAR(255) NOT NULL,
                     dependency_type VARCHAR(50),
-                    target_name VARCHAR(255)
-                );
+                    target_name VARCHAR(255),
+                    target_file VARCHAR(255) NULL,
+                    resolution_status VARCHAR(30) NULL
+                )
             """)
-
-            # 3. Commits Table
             cursor.execute("""
-                CREATE TABLE commits (
+                CREATE TABLE IF NOT EXISTS commits (
                     commit_hash VARCHAR(64) PRIMARY KEY,
                     author VARCHAR(255),
                     timestamp BIGINT
-                );
+                )
             """)
-
-            # 4. Commit-Files Relationship Table (Enables fast co-change queries)
             cursor.execute("""
-                CREATE TABLE commit_files (
+                CREATE TABLE IF NOT EXISTS commit_files (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     commit_hash VARCHAR(64),
                     file_path VARCHAR(255),
-                    FOREIGN KEY (commit_hash) REFERENCES commits(commit_hash) ON DELETE CASCADE
-                );
+                    FOREIGN KEY (commit_hash)
+                        REFERENCES commits(commit_hash) ON DELETE CASCADE
+                )
             """)
+
+            cursor.execute("SHOW COLUMNS FROM semantic_dependencies")
+            columns = {row["Field"] for row in cursor.fetchall()}
+
+            if "target_file" not in columns:
+                cursor.execute("""
+                    ALTER TABLE semantic_dependencies
+                    ADD COLUMN target_file VARCHAR(255) NULL
+                """)
+            if "resolution_status" not in columns:
+                cursor.execute("""
+                    ALTER TABLE semantic_dependencies
+                    ADD COLUMN resolution_status VARCHAR(30) NULL
+                """)
+
         self.connection.commit()
-        print("Database schema successfully created in MariaDB.")
+        print("Database schema verified; existing records preserved.")
 
     def load_structural_data(self, json_path="structural_metrics.json"):
         if not Path(json_path).exists():
@@ -108,13 +115,18 @@ class DatabaseLoader:
             for file_path, deps in data.items():
                 for dep in deps:
                     cursor.execute("""
-                        INSERT INTO semantic_dependencies (source_file, dependency_type, target_name)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO semantic_dependencies
+                            (source_file, dependency_type, target_name,
+                             target_file, resolution_status)
+                        VALUES (%s, %s, %s, %s, %s)
                     """, (
                         file_path,
                         dep.get("type", "unknown"),
-                        dep.get("target", "")
+                        dep.get("target", ""),
+                        dep.get("target_file"),
+                        dep.get("resolution_status")
                     ))
+
         self.connection.commit()
         print("Loaded semantic dependencies into MySQL.")
 
@@ -138,13 +150,17 @@ class DatabaseLoader:
                     INSERT IGNORE INTO commits (commit_hash, author, timestamp)
                     VALUES (%s, %s, %s)
                 """, (c_hash, author, timestamp))
-                
+
                 # Insert relational mapping for files touched in this commit
                 for file_path in files:
                     cursor.execute("""
                         INSERT INTO commit_files (commit_hash, file_path)
-                        VALUES (%s, %s)
-                    """, (c_hash, file_path))
+                        SELECT %s, %s
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM commit_files
+                            WHERE commit_hash = %s AND file_path = %s
+                        )
+                    """, (c_hash, file_path, c_hash, file_path))
 
         self.connection.commit()
         print("Loaded Git commit logs and file mappings into MySQL.")
