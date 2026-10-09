@@ -1,13 +1,12 @@
-from pathlib import Path
 import sys
-import json
+from pathlib import Path
 
 from scanner import scan_repository
 from parser import extract_includes
 from graph_builder import build_dependency_graph
 from validator import GraphValidator
 from analyzer import StructuralAnalyzer
-from semantic_analyzer import SemanticAnalyzer
+# from semantic_analyzer import SemanticAnalyzer  # Disabled for now
 from git_analyzer import GitAnalyzer
 from db_loader import DatabaseLoader
 from dataset_builder import TemporalDatasetBuilder
@@ -23,6 +22,7 @@ if not repository.is_dir():
     print(f"Error: {repository} is not a valid directory")
     sys.exit(1)
 
+print("Scanning repository...")
 files = scan_repository(repository)
 print(f"Found {len(files)} C++ files.")
 
@@ -45,15 +45,7 @@ graph = build_dependency_graph(
 print(f"Graph contains {graph.number_of_nodes()} nodes.")
 print(f"Graph contains {graph.number_of_edges()} edges.")
 
-print("\nSample dependency relationships:")
-
-for source, target, data in list(graph.edges(data=True))[:20]:
-    print(
-        f"{source} -> {target}"
-        f"(line {data['line']})"
-    )
-
-print("Graph Validation")
+print("\nGraph Validation")
 validator = GraphValidator(graph)
 report = validator.generate_report()
 print(report)
@@ -63,10 +55,11 @@ analyzer = StructuralAnalyzer(graph)
 output_file = analyzer.export_metrics()
 print(f"Success! Structural metrics exported to: {output_file}")
 
-print("\nSemantic C++ Dependency Analysis")
-semantic_analyzer = SemanticAnalyzer(repository, graph)
-semantic_output = semantic_analyzer.export_semantics()
-print(f"Success! Semantic features exported to: {semantic_output}")
+# --- SEMANTIC ANALYSIS TEMPORARILY DISABLED ---
+# print("\nSemantic C++ Dependency Analysis")
+# semantic_analyzer = SemanticAnalyzer(repository, graph)
+# semantic_output = semantic_analyzer.export_semantics()
+# print(f"Success! Semantic features exported to: {semantic_output}")
 
 print("\nHistorical Git Mining")
 git_analyzer = GitAnalyzer(repository)
@@ -76,13 +69,12 @@ print(f"Success! Raw commit log exported to: {git_output}")
 print("\nMySQL Ingestion Layer")
 db_loader = DatabaseLoader()
 db_loader.load_structural_data()
-db_loader.load_semantic_data()
+# db_loader.load_semantic_data()  # Disabled until mapper is fixed
 db_loader.load_git_data()
 db_loader.close()
-print("Success! All JSON artifacts normalized and ingested into MySQL.")
+print("Success! JSON artifacts normalized and ingested into MySQL.")
 
 print("\nTemporal Dataset Construction & Risk Labeling")
-from dataset_builder import TemporalDatasetBuilder
-dataset_builder = TemporalDatasetBuilder()
-dataset_builder.build_and_export()
+dataset_builder = TemporalDatasetBuilder(repository)
+dataset_builder.build()
 print("Success! Training dataset constructed and exported.")

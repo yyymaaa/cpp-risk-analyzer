@@ -165,10 +165,12 @@ class TemporalDatasetBuilder:
                 c for c in commits
                 if history_start < c["timestamp"] <= cutoff
             ]
-            future_corrective = [
+            
+            # Path A: Look at all future commits to measure true change propagation,
+            # dropping the noisy "corrective" keyword filter entirely.
+            future_commits = [
                 c for c in commits
                 if cutoff < c["timestamp"] <= future_end
-                and c["corrective"]
             ]
 
             # Reconstruct structural features as of this exact cutoff.
@@ -211,9 +213,13 @@ class TemporalDatasetBuilder:
                             file_cochanges[path].add(other)
                             file_cochange_events[path] += 1
 
-            future_positive = set()
-            for commit in future_corrective:
-                future_positive.update(commit["files"])
+            # Path A: Calculate continuous blast radius (co-change impact)
+            future_cochange_impact = defaultdict(set)
+            for commit in future_commits:
+                files = commit["files"]
+                for path in files:
+                    # Add all OTHER files in this commit to the impacted set for `path`
+                    future_cochange_impact[path].update(f for f in files if f != path)
 
             cutoff_date = datetime.fromtimestamp(
                 cutoff, tz=timezone.utc
@@ -223,8 +229,6 @@ class TemporalDatasetBuilder:
                 if first_seen.get(path, last_timestamp + 1) > cutoff:
                     continue
 
-                # A current file may not exist in this historical snapshot.
-                # Do not assign it structural metrics from today's graph.
                 metrics = metrics_by_path.get(path)
                 if metrics is None:
                     continue
@@ -255,9 +259,8 @@ class TemporalDatasetBuilder:
                         if previous_change is not None
                         else LOOKBACK_DAYS
                     ),
-                    "future_corrective_change_90d": int(
-                        path in future_positive
-                    ),
+                    # Target is now a continuous integer instead of 0 or 1
+                    "future_cochange_blast_radius_90d": len(future_cochange_impact.get(path, set())),
                 })
 
         if not rows:
@@ -292,32 +295,16 @@ class TemporalDatasetBuilder:
         print(f"\nGit commits parsed: {len(commits)}")
         print(f"Current structural files: {len(self.current_files)}")
         print(f"Temporal snapshots built: {snapshots_built}")
-        print(f"Snapshots represented in dataset: {len(unique_dates)}")
         print(f"Dataset rows: {len(df)}")
-        print(f"Distinct files represented: {df['file_path'].nunique()}")
-        print(f"Training rows: {(df['split'] == 'train').sum()}")
-        print(f"Test rows: {(df['split'] == 'test').sum()}")
-        print(
-            "Positive training labels:",
-            int(df.loc[
-                df["split"] == "train",
-                "future_corrective_change_90d"
-            ].sum()),
-        )
-        print(
-            "Positive test labels:",
-            int(df.loc[
-                df["split"] == "test",
-                "future_corrective_change_90d"
-            ].sum()),
-        )
-        print(f"Test period starts: {test_start}")
+        
+        train_df = df[df["split"] == "train"]
+        test_df = df[df["split"] == "test"]
+        
+        print(f"Training rows: {len(train_df)}")
+        print(f"Test rows: {len(test_df)}")
+        print(f"Mean train blast radius: {train_df['future_cochange_blast_radius_90d'].mean():.2f}")
+        print(f"Mean test blast radius: {test_df['future_cochange_blast_radius_90d'].mean():.2f}")
         print(f"Saved dataset: {destination}")
-
-        print("\nLabel distribution by split:")
-        print(pd.crosstab(
-            df["split"], df["future_corrective_change_90d"]
-        ))
 
         return df
 
