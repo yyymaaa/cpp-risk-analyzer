@@ -60,8 +60,9 @@ git_miner
 *.a
 *.so
 
+# Data Outputs
 structural_metrics.json
 semantic_dependencies.json
 semantic_dependencies.json
 commit_log.json
-
+db_config.json

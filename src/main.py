@@ -9,6 +9,7 @@ from validator import GraphValidator
 from analyzer import StructuralAnalyzer
 from semantic_analyzer import SemanticAnalyzer
 from git_analyzer import GitAnalyzer
+from db_loader import DatabaseLoader
 
 if len(sys.argv) < 2:
     print("Usage:")
@@ -70,4 +71,11 @@ print("\nHistorical Git Mining")
 git_analyzer = GitAnalyzer(repository)
 git_output = git_analyzer.export_history()
 print(f"Success! Raw commit log exported to: {git_output}")
-    
+
+print("\nMySQL Ingestion Layer")
+db_loader = DatabaseLoader()
+db_loader.load_structural_data()
+db_loader.load_semantic_data()
+db_loader.load_git_data()
+db_loader.close()
+print("Success! All JSON artifacts normalized and ingested into MySQL.")
