@@ -24,7 +24,7 @@ def train():
     # Our new Path A continuous target
     target = "future_cochange_blast_radius_90d"
 
-    train_df = df[df["split"] == "train"]
+    train_df = df=[df["split"] == "train"]
     test_df = df[df["split"] == "test"]
 
     X_train = train_df[features]

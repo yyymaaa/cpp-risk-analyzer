@@ -1,0 +1,54 @@
+#!/bin/bash
+# C++ Dependency Risk Analyzer CLI
+
+COMMAND=$1
+TARGET=$2
+
+if [ -z "$COMMAND" ]; then
+    echo "=========================================="
+    echo "  C++ Dependency Risk Analyzer (v1.0)"
+    echo "=========================================="
+    echo "Usage: ./risk [command] [target]"
+    echo ""
+    echo "Commands:"
+    echo "  build <repo_path>   : Extract metrics, generate dataset, and train the ML model"
+    echo "  impact <file_path>  : Run change-impact analysis on a specific file"
+    echo ""
+    echo "Examples:"
+    echo "  ./risk build /home/ojuka/Desktop/leveldb"
+    echo "  ./risk impact include/leveldb/status.h"
+    exit 1
+fi
+
+# Automatically activate the virtual environment so the user doesn't have to
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
+fi
+
+case $COMMAND in
+    build)
+        if [ -z "$TARGET" ]; then
+            echo "Error: Please provide a repository path."
+            echo "Example: ./risk build /home/ojuka/Desktop/leveldb"
+            exit 1
+        fi
+        echo "Starting full analysis pipeline on $TARGET..."
+        python src/main.py "$TARGET"
+        
+        echo -e "\nStarting ML Model Training..."
+        python src/train_model.py
+        ;;
+    impact)
+        if [ -z "$TARGET" ]; then
+            echo "Error: Please provide a target file path."
+            echo "Example: ./risk impact util/hash.h"
+            exit 1
+        fi
+        python src/impact_analyzer.py "$TARGET"
+        ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        echo "Available commands: build, impact"
+        exit 1
+        ;;
+esac
