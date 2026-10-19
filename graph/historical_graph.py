@@ -7,13 +7,21 @@ from pathlib import Path
 
 import networkx as nx
 
-from scanner import scan_repository
-from parser import extract_includes
-from graph_builder import build_dependency_graph
-from analyzer import StructuralAnalyzer
+from core.scanner import scan_repository
+from core.parser import extract_includes
+from .graph_builder import build_dependency_graph
+from .analyzer import StructuralAnalyzer
 
 
 def git_output(repo: Path, *args: str) -> str:
+    """Execute a Git command within a specified repository and returns its output
+
+    Args:
+        repo (Path): The repository path where the Git command where the Git command will run
+
+    Returns:
+        str: Standard output string from the Git command
+    """    
     result = subprocess.run(
         ["git", *args],
         cwd=repo,
@@ -27,7 +35,18 @@ def git_output(repo: Path, *args: str) -> str:
 def historical_graph(
     repo: Path, cutoff_timestamp: int
 ) -> tuple[str, nx.DiGraph]:
-    """Build an include-dependency graph from the latest eligible first-parent commit."""
+    """Builds an include-dependency graph from the latest eligible first-parent commit before a target Unix timestamps
+
+    Args:
+        repo (Path): Path the target Git repository
+        cutoff_timestamp (int): Unix timestamp cutoff point for filtering commits
+
+    Raises:
+        ValueError: ValueError: If the no commit exists on or prior to the cutoff timestamp
+
+    Returns:
+        tuple[str, nx.DiGraph]: A tuple containing the selected commit hash and the populated NetworkX dependency graph
+    """
     repo = repo.resolve()
 
     cutoff_date = datetime.fromtimestamp(

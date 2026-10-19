@@ -1,14 +1,24 @@
 from pathlib import Path
 import networkx as nx
 
-from parser import IncludeDirective
-from resolver import resolve_include
+from core.parser import IncludeDirective
+from core.resolver import resolve_include
 
 def build_dependency_graph(
     repository: Path,
     files: list[Path],
     dependencies: dict[Path, list[IncludeDirective]]
 ) -> nx.DiGraph:
+    """Builds a directory graph where nodes are files and edges represent include relationships
+
+    Args:
+        repository (Path): The root directory of the repository
+        files (list[Path]): A list of source file paths present in the repository
+        dependencies (dict[Path, list[IncludeDirective]]): A mapping of source files to their extracted include directives
+
+    Returns:
+        nx.DiGraph: A networkX directed graph populated with nodes and dependency edges
+    """    
     graph = nx.DiGraph()
     for file in files:
         relative_path = file.relative_to(repository).as_posix()

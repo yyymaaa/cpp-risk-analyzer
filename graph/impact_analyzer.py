@@ -5,17 +5,24 @@ import networkx as nx
 from pathlib import Path
 import sys
 
-from scanner import scan_repository
-from parser import extract_includes
+from core.scanner import scan_repository
+from core.parser import extract_includes
 from graph_builder import build_dependency_graph
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_PATH = Path("/home/ojuka/Desktop/leveldb")
-DATASET_PATH = PROJECT_ROOT / "training_dataset.csv"
+DATASET_PATH = PROJECT_ROOT / "data" / "ml_datasets" / "training_dataset.csv"
 MODEL_PATH = PROJECT_ROOT / "models" / "random_forest_regressor.joblib"
 
 class ChangeImpactAnalyzer:
+    """Analyzer potential impact of code changes using trained ML models and graph traversal
+    """
     def __init__(self, repo_path=REPO_PATH):
+        """Initialized the ChangeImpactAnalyzer with model predictors and dependency graph
+
+        Args:
+            repo_path (_type_, optional): Path to the C++ repository under analysis. Defaults to REPO_PATH.
+        """
         self.repo_path = Path(repo_path)
         print("Loading ML model and historical dataset...")
         self.model = joblib.load(MODEL_PATH)
@@ -45,6 +52,15 @@ class ChangeImpactAnalyzer:
         self.graph = build_dependency_graph(self.repo_path, files, dependencies)
 
     def generate_explanation(self, file_path, row):
+        """Generates human-readable explanation messages per file based on feature thresholds
+
+        Args:
+            file_path (_type_): Relative file path being evaluated
+            row (_type_): Dataset row containing metrics for the specified file
+
+        Returns:
+            _type_: Explanatory statements identifying structural or historical risk factors
+        """        
         """Phase 11: Generate human-readable per-file explanations"""
         reasons = []
         
@@ -68,7 +84,11 @@ class ChangeImpactAnalyzer:
         return reasons
 
     def analyze_impact(self, target_file):
-        """Phase 12: Change-Impact Analysis via Graph Traversal"""
+        """Perform change-impact analysis for a target file via graph traversal and ML scoring
+
+        Args:
+            target_file (_type_): relative file path within the repository to analyze
+        """        
         if target_file not in self.graph.nodes:
             print(f"Error: {target_file} not found in the structural graph.")
             return

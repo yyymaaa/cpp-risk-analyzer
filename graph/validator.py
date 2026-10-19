@@ -3,9 +3,21 @@ import json
 from typing import Dict, Any
 
 class GraphValidator:
+    """Provides validation metrics and structural health checks for dependency graphs
+    """
     def __init__(self, graph: nx.DiGraph):
+        """initializes the GraphValidator with a NetworkX directed graph
+
+        Args:
+            graph (nx.DiGraph): The directed dependency graph to validate
+        """
         self.graph = graph
     def calculate_resolution_metrics(self) -> Dict[str, Any]:
+        """calculates include resolution statistics for internal edge
+
+        Returns:
+            Dict[str, Any]: Dictionary containing total internal edges and resolution rate
+        """        
         total_edges = self.graph.number_of_edges()
         internal_resolved = sum(
             1 for u, v, data in self.graph.edges(data=True)
@@ -20,6 +32,11 @@ class GraphValidator:
         }
 
     def run_structural_checks(self) -> Dict[str, Any]:
+        """evaluates structural properties including components, cycles, and isolated nodes
+
+        Returns:
+            Dict[str, Any]: Dictionary summarizing graph health statistics
+        """
         isolates = list(nx.isolates(self.graph))
         self_loops = list(nx.selfloop_edges(self.graph))
         weak_components = list(nx.weakly_connected_components(self.graph))
@@ -37,6 +54,11 @@ class GraphValidator:
         }
 
     def generate_report(self) -> str:
+        """Generates a JSON string report combining resolution metrics and structural health
+
+        Returns:
+            str: pretty-printed JSON report
+        """        
         report = {
             "resolution_metrics": self.calculate_resolution_metrics(),
             "structural_health": self.run_structural_checks()
