@@ -4,12 +4,22 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class IncludeDirective:
+    """Represents a parsed C++ include directive
+    """
     path: str
     delimiter: str
     line_number: int
 
 
 def extract_includes(file_path: Path) -> list[IncludeDirective]:
+    """Extracts all include directives from a given C++ source file
+
+    Args:
+        file_path (Path): the path to the C++ source file to parse
+
+    Returns:
+        list[IncludeDirective]: a list of extracted include directives
+    """
     includes: list[IncludeDirective] = []
 
     with file_path.open("r", encoding="utf-8", errors="ignore") as file:
