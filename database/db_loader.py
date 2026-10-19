@@ -3,7 +3,16 @@ import pymysql
 from pathlib import Path
 
 class DatabaseLoader:
-    def __init__(self, db_name="cpp_risk_analyzer", user="root", config_path="db_config.json"):
+    """Manages database schema initialization and ingestion of metrics, semantic dependencies, and Git logs into MySQL
+    """
+    def __init__(self, db_name="cpp_risk_analyzer", user="root", config_path="data/configuration/db_config.json"):
+        """initializes the DatabaseLoader and connects to the MySQL server
+
+        Args:
+            db_name (str, optional): Name of the MySQL database. Defaults to "cpp_risk_analyzer".
+            user (str, optional): Database username. Defaults to "root".
+            config_path (str, optional): Path to the database configuration JSON file. Defaults to "data/configuration/db_config.json".
+        """
         password = ""
         if Path(config_path).exists():
             with open(config_path, "r") as f:
@@ -80,7 +89,12 @@ class DatabaseLoader:
         self.connection.commit()
         print("Database schema verified; existing records preserved.")
 
-    def load_structural_data(self, json_path="structural_metrics.json"):
+    def load_structural_data(self, json_path="data/extraction_output/structural_metrics.json"):
+        """Loads graph structural metrics from a JSON file into MySQL
+
+        Args:
+            json_path (str, optional): Path to the structural metrics JSON file. Defaults to "data/extraction_output/structural_metrics.json".
+        """     
         if not Path(json_path).exists():
             print(f"Skipping {json_path}: file not found.")
             return
@@ -103,7 +117,12 @@ class DatabaseLoader:
         self.connection.commit()
         print("Loaded structural metrics into MySQL.")
 
-    def load_semantic_data(self, json_path="semantic_dependencies.json"):
+    def load_semantic_data(self, json_path="data/extraction_output/semantic_dependencies.json"):
+        """loads semantic dependency data from a JSON file into MySQL
+
+        Args:
+            json_path (str, optional): Path to the semantic dependencies JSON file. Defaults to "data/extraction_output/semantic_dependencies.json".
+        """        
         if not Path(json_path).exists():
             print(f"Skipping {json_path}: file not found.")
             return
@@ -130,7 +149,12 @@ class DatabaseLoader:
         self.connection.commit()
         print("Loaded semantic dependencies into MySQL.")
 
-    def load_git_data(self, json_path="commit_log.json"):
+    def load_git_data(self, json_path="data/extraction_output/commit_log.json"):
+        """Loads Git commit history and touched file mappings from a JSON file into MySQL
+
+        Args:
+            json_path (str, optional): Path to the commit log JSON file. Defaults to "data/extraction_output/commit_log.json".
+        """        
         if not Path(json_path).exists():
             print(f"Skipping {json_path}: file not found.")
             return
@@ -166,6 +190,8 @@ class DatabaseLoader:
         print("Loaded Git commit logs and file mappings into MySQL.")
 
     def close(self):
+        """Closes the active database connection
+        """        
         self.connection.close()
 
 if __name__ == "__main__":
