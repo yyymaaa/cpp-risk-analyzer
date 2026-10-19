@@ -11,6 +11,14 @@ CPP_EXTENSIONS = {
 }
 
 def scan_repository(repository: Path) -> list[Path]:
+    """Recursively scan a repository for C++ source and header files
+
+    Args:
+        repository (Path): The root directory path of the repository to scan
+
+    Returns:
+        list[Path]: A sorted list of Path objects for the discovered C++ files
+    """    
     found_files = [
         path
         for path in repository.rglob("*")
@@ -19,13 +27,3 @@ def scan_repository(repository: Path) -> list[Path]:
 
     return sorted(found_files)
 
-"""
-
-    cpp_files = []
-
-    for file in root_dir.rglob("*"):
-        if file.suffix in CPP_EXTENSIONS:
-            cpp_files.append(file)
-    return cpp_files
-
-"""

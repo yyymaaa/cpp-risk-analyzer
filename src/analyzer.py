@@ -4,6 +4,11 @@ from typing import Dict
 
 class StructuralAnalyzer:
     def __init__(self, graph: nx.DiGraph):
+        """constructor
+
+        Args:
+            graph (nx.DiGraph): nx.Digraph
+        """
         self.graph = graph
 
 
