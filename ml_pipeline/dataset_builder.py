@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from historical_graph import historical_graph
-from analyzer import StructuralAnalyzer
+from graph.historical_graph import historical_graph
+from graph.analyzer import StructuralAnalyzer
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +29,15 @@ COMMIT_HEADER = re.compile(r"^([0-9a-f]{40})\t(\d+)\t(.*)$")
 
 
 def numeric_metric(metrics, name):
+    """extract a numeric structural metric from a dictionary with fallback handling
+
+    Args:
+        metrics (_type_): Dictionary containing node metrics
+        name (_type_): Key name of the metrics to retrieve
+
+    Returns:
+        _type_: Calculated metric vaue as float, or 0.0 if absent or invalid
+    """    
     """Return a numeric structural metric, defaulting to zero if absent."""
     value = metrics.get(name, 0) if isinstance(metrics, dict) else 0
 
@@ -40,10 +49,22 @@ def numeric_metric(metrics, name):
 
 
 class TemporalDatasetBuilder:
+    """builds temporal training dataset combining historical git commit churn and graph
+    centralitry metrics across rolling window cutoffs
+    """    
     def __init__(self, repo_path=REPO_PATH):
+        """initialized the dataset builder with target repository path and structural baselines
+
+        Args:
+            repo_path (_type_, optional): Path to the target Git repository under analysis. Defaults to REPO_PATH.
+
+        Raises:
+            FileNotFoundError: if the repo or structural metrics file does not exist
+            ValueError: If the structural metrics JSON format is invalid
+        """        
         self.repo_path = Path(repo_path)
-        self.structural_path = PROJECT_ROOT / "structural_metrics.json"
-        self.output_path = PROJECT_ROOT / "training_dataset.csv"
+        self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
+        self.output_path = PROJECT_ROOT / "data" / "ml_datasets" / "training_dataset.csv"
 
         if not self.repo_path.is_dir():
             raise FileNotFoundError(
@@ -64,6 +85,14 @@ class TemporalDatasetBuilder:
         self.current_files = set(self.structural)
 
     def read_git_history(self):
+        """parses commit history, timestamps, messages and affected paths from Git log
+
+        Raises:
+            ValueError: If no git commits match current codebase file paths
+
+        Returns:
+            _type_: list of parsed commit records matched against active structural paths
+        """        
         """Read commit timestamps, subjects and changed paths from HEAD."""
         result = subprocess.run(
             [
@@ -121,6 +150,18 @@ class TemporalDatasetBuilder:
         return commits
 
     def build(self, output_path=None):
+        """generates rollimh temoral snapshots, computed features columns, and saves the CSV dataset
+
+        Args:
+            output_path (_type_, optional): Custom target destination for CSV dataset export. Defaults to None.
+
+        Raises:
+            ValueError: If commit history or temporal snapshot constraints are not met
+            
+
+        Returns:
+            _type_: formatted dataset containing temporal features and target blast radius
+        """        
         commits = self.read_git_history()
 
         lookback = LOOKBACK_DAYS * 86400

@@ -6,10 +6,13 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import joblib
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATASET_PATH = PROJECT_ROOT / "training_dataset.csv"
+DATASET_PATH = PROJECT_ROOT / "data" / "ml_datasets" / "training_dataset.csv"
 MODEL_DIR = PROJECT_ROOT / "models"
 
 def train():
+    """trains Random Forest Regressor on temporal training data and evaluates on held-out test splits
+    Saves trained model weights and feature importances
+    """
     print("Loading dataset...")
     df = pd.read_csv(DATASET_PATH)
 
