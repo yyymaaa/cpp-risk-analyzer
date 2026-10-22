@@ -1,18 +1,18 @@
 import json
 import re
 import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from graph.historical_graph import historical_graph
 from graph.analyzer import StructuralAnalyzer
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-REPO_PATH = Path("/home/ojuka/Desktop/leveldb")
 
 LOOKBACK_DAYS = 365
 HORIZON_DAYS = 90
@@ -62,19 +62,20 @@ class TemporalDatasetBuilder:
             FileNotFoundError: if the repo or structural metrics file does not exist
             ValueError: If the structural metrics JSON format is invalid
         """        
-        self.repo_path = Path(repo_path)
-        self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
-        self.output_path = PROJECT_ROOT / "data" / "ml_datasets" / "training_dataset.csv"
+        self.repo_path = Path(repo_path).resolve()
+        repo_name = self.repo_path.name
 
         if not self.repo_path.is_dir():
             raise FileNotFoundError(
                 f"Git repository not found: {self.repo_path}"
             )
 
-        if not self.structural_path.is_file():
-            raise FileNotFoundError(
-                f"Structural metrics not found: {self.structural_path}"
-            )
+        # Dynamic repository-specific extraction and output paths
+        self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_structural_metrics.json"
+        if not self.structural_path.exists():
+            self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
+
+        self.output_path = PROJECT_ROOT / "data" / "ml_datasets" / f"{repo_name}_training_dataset.csv"
 
         with self.structural_path.open() as f:
             self.structural = json.load(f)
@@ -351,5 +352,10 @@ class TemporalDatasetBuilder:
 
 
 if __name__ == "__main__":
-    TemporalDatasetBuilder().build()
+    import argparse
 
+    parser = argparse.ArgumentParser(description="Build temporal dataset for a C++ repository.")
+    parser.add_argument("repo_path", type=Path, help="Path to target C++ repository")
+    args = parser.parse_args()
+
+    TemporalDatasetBuilder(repo_path=args.repo_path).build()

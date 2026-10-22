@@ -1,5 +1,5 @@
 from pathlib import Path
-from parser import IncludeDirective
+from .parser import IncludeDirective
 
 
 class ResolutionResult:

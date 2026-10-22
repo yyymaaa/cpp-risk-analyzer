@@ -5,11 +5,13 @@ import networkx as nx
 from pathlib import Path
 import sys
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from core.scanner import scan_repository
 from core.parser import extract_includes
-from graph_builder import build_dependency_graph
+from graph.graph_builder import build_dependency_graph
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_PATH = Path("/home/ojuka/Desktop/leveldb")
 DATASET_PATH = PROJECT_ROOT / "data" / "ml_datasets" / "training_dataset.csv"
 MODEL_PATH = PROJECT_ROOT / "models" / "random_forest_regressor.joblib"

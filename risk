@@ -44,7 +44,7 @@ case $COMMAND in
             echo "Example: ./risk impact util/hash.h"
             exit 1
         fi
-        python src/impact_analyzer.py "$TARGET"
+        python graph/impact_analyzer.py "$TARGET"
         ;;
     *)
         echo "Unknown command: $COMMAND"
