@@ -1,6 +1,11 @@
 import networkx as nx
 import json
+import sys
+from pathlib import Path
 from typing import Dict
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 class StructuralAnalyzer:
     """Calculates network structural metrics (Fan-in, Fan-out, PageRank, Betweeness)
@@ -16,12 +21,12 @@ for a given code dependency graph
 
 
     def calculate_metrics(self) -> Dict[str, Dict[str, float]]:
-        """COmputes structural metrics for each nodde in thhe dependency graph
+        """Computes structural metrics for each nodde in thhe dependency graph
 
         Returns:
             Dict[str, Dict[str, float]]: A dictionary mapping file paths to thheir calculated graph metrics
         """        
-        print("Calculating structural metrics...(This might take a moment)")
+        # print("Calculating structural metrics...(This might take a moment)")
 
         pagerank_scores = nx.pagerank(self.graph)
         betweeness_scores = nx.betweenness_centrality(self.graph)
@@ -41,7 +46,7 @@ for a given code dependency graph
 
         return file_metrics
 
-    def export_metrics(self, output_path: str = "data/extraction_output/structural_metrics.json") -> str:
+    def export_metrics(self, output_path: Path | str | None = None) -> str:
         """Calculates and exports structural metrics to a JSON file
 
         Args:
@@ -49,10 +54,17 @@ for a given code dependency graph
 
         Returns:
             str: the output file path where metrics were saved
-        """        
+        """   
         metrics = self.calculate_metrics()
+            
+        if output_path is None:
+            output_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
+        else:
+            output_path = Path(output_path)
 
-        with open(output_path, "w") as f:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=4)
 
-        return output_path
+        return str(output_path)

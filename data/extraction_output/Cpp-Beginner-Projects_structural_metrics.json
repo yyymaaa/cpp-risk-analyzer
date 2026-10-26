@@ -1,0 +1,248 @@
+{
+    "City Quiz/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/include/Currency.h": {
+        "fan_in": 2,
+        "fan_out": 0,
+        "pagerank": 0.057508,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/include/From_Currency.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/include/To_Currency.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/src/Currency.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/src/From_Currency.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Currency Converter/src/To_Currency.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Dice Roll Game/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Factorial Calculator/include/Calculate.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Factorial Calculator/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Factorial Calculator/src/Calculate.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Number Guessing Game/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/2D 1/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/2D 2/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/2D Circle/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/3D Sierpinski Gasket/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/3D Spin Cube/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/CG lab/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/Polygon using scan Line Algorithm/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/RGB/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/Table & Teapot/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/Using Camera & Perspective/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/colour cube/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "OpenGL Project/matrix/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Add.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Addition.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Calculator.h": {
+        "fan_in": 5,
+        "fan_out": 0,
+        "pagerank": 0.11182,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Division.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Multiplication.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/include/Subtraction.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Add.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Addition.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Calculator.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Division.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Multiplication.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Simple Calculator/src/Subtraction.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Triangle Sides Calculator/include/Triangle.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Triangle Sides Calculator/main.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    },
+    "Triangle Sides Calculator/src/Triangle.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.021299,
+        "betweeness_centrality": 0.0
+    }
+}

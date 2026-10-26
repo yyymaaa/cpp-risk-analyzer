@@ -27,7 +27,7 @@ class GraphValidator:
         resolution_rate = (internal_resolved / total_edges) if total_edges > 0 else 0.0
 
         return {
-            "total_itnernal_edges" : internal_resolved,
+            "total_internal_edges": internal_resolved,
             "resolution_rate": round(resolution_rate, 4)
         }
 

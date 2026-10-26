@@ -1,54 +1,72 @@
 #!/bin/bash
-# C++ Dependency Risk Analyzer CLI
 
-COMMAND=$1
-TARGET=$2
+# Define Pink & Purple RGB ANSI Codes to match the Python Rich theme
+PINK='\e[38;2;255;112;166m'          # #ff70a6
+LIGHT_PURPLE='\e[38;2;178;141;255m'  # #b28dff
+VIBRANT_PURPLE='\e[38;2;199;125;255m'# #c77dff
+BOLD='\e[1m'
+RESET='\e[0m'
 
-if [ -z "$COMMAND" ]; then
-    echo "=========================================="
-    echo "  C++ Dependency Risk Analyzer (v1.0)"
-    echo "=========================================="
-    echo "Usage: ./risk [command] [target]"
+show_help() {
+    echo -e "${BOLD}${PINK}"
+    echo '   ___   __   __   ____  _________ __ __ '
+    echo '  / __| / /_ / /_ / __ \/  _/ ___// //_/ '
+    echo ' / /   /_  _/_  // /_/ // / \__ \/ ,<    '
+    echo '/ /___  /_/  /_// _, _// / ___/ / /| |   '
+    echo '\____/         /_/ |_/___//____/_/ |_|   '
+    echo -e "${RESET}"
+    echo -e "  ${VIBRANT_PURPLE}C++ Dependency Risk Analyzer (v1.0)${RESET}\n"
+
+    echo -e "${BOLD}${LIGHT_PURPLE}Usage:${RESET}"
+    echo -e "  ./risk [command] [options] [arguments]\n"
+
+    echo -e "${BOLD}${LIGHT_PURPLE}Commands:${RESET}"
+    echo -e "  ${BOLD}${PINK}build${RESET}  <repo_path>                 Extract metrics, generate dataset, and train model"
+    echo -e "  ${BOLD}${PINK}impact${RESET} <file_path> <repo_path>     Run change-impact analysis on a specific file\n"
+
+    echo -e "${BOLD}${LIGHT_PURPLE}Examples:${RESET}"
+    echo -e "  ${VIBRANT_PURPLE}# Build ML model and structural metrics for a repository${RESET}"
+    echo -e "  ./risk build /path/to/your/cpp-repo\n"
+    echo -e "  ${VIBRANT_PURPLE}# Analyze the risk of modifying a specific core file${RESET}"
+    echo -e "  ./risk impact src/core/engine.cc /path/to/your/cpp-repo"
     echo ""
-    echo "Commands:"
-    echo "  build <repo_path>   : Extract metrics, generate dataset, and train the ML model"
-    echo "  impact <file_path>  : Run change-impact analysis on a specific file"
-    echo ""
-    echo "Examples:"
-    echo "  ./risk build /home/ojuka/Desktop/leveldb"
-    echo "  ./risk impact include/leveldb/status.h"
+}
+
+if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    show_help
     exit 1
 fi
 
-# Automatically activate the virtual environment so the user doesn't have to
-if [ -d ".venv" ]; then
-    source .venv/bin/activate
-fi
+COMMAND=$1
+shift
 
-case $COMMAND in
+case "$COMMAND" in
     build)
-        if [ -z "$TARGET" ]; then
-            echo "Error: Please provide a repository path."
-            echo "Example: ./risk build /home/ojuka/Desktop/leveldb"
+        if [ -z "$1" ]; then
+            echo -e "${BOLD}${PINK}Error: Missing repository path.${RESET}"
+            echo "Usage: ./risk build <repo_path>"
             exit 1
         fi
-        echo "Starting full analysis pipeline on $TARGET..."
-        python src/main.py "$TARGET"
         
-        echo -e "\nStarting ML Model Training..."
-        python src/train_model.py
+        # Pass flags (like -v) down to main.py
+        REPO=$1
+        shift
+        
+        python core/main.py "$REPO" "$@"
+        python ml_pipeline/dataset_builder.py "$REPO"
+        python ml_pipeline/train_model.py "$REPO"
         ;;
     impact)
-        if [ -z "$TARGET" ]; then
-            echo "Error: Please provide a target file path."
-            echo "Example: ./risk impact util/hash.h"
+        if [ -z "$1" ] || [ -z "$2" ]; then
+            echo -e "${BOLD}${PINK}Error: Missing arguments.${RESET}"
+            echo "Usage: ./risk impact <file_path> <repo_path>"
             exit 1
         fi
-        python graph/impact_analyzer.py "$TARGET"
+        python graph/impact_analyzer.py "$1" --repo "$2"
         ;;
     *)
-        echo "Unknown command: $COMMAND"
-        echo "Available commands: build, impact"
+        echo -e "${BOLD}${PINK}Error: Unknown command '$COMMAND'.${RESET}"
+        show_help
         exit 1
         ;;
 esac

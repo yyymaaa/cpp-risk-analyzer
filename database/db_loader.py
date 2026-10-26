@@ -1,11 +1,15 @@
 import json
+import sys
 import pymysql
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 class DatabaseLoader:
     """Manages database schema initialization and ingestion of metrics, semantic dependencies, and Git logs into MySQL
     """
-    def __init__(self, db_name="cpp_risk_analyzer", user="root", config_path="data/configuration/db_config.json"):
+    def __init__(self, db_name="cpp_risk_analyzer", user="root", config_path=None):
         """initializes the DatabaseLoader and connects to the MySQL server
 
         Args:
@@ -13,9 +17,14 @@ class DatabaseLoader:
             user (str, optional): Database username. Defaults to "root".
             config_path (str, optional): Path to the database configuration JSON file. Defaults to "data/configuration/db_config.json".
         """
+        if config_path is None:
+            config_path = PROJECT_ROOT / "data" / "configuration" / "db_config.json"
+        else:
+            config_path = Path(config_path)
+
         password = ""
-        if Path(config_path).exists():
-            with open(config_path, "r") as f:
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 password = config.get("password", "")
         else:
@@ -75,39 +84,42 @@ class DatabaseLoader:
             cursor.execute("SHOW COLUMNS FROM semantic_dependencies")
             columns = {row["Field"] for row in cursor.fetchall()}
 
-            if "target_file" not in columns:
-                cursor.execute("""
-                    ALTER TABLE semantic_dependencies
-                    ADD COLUMN target_file VARCHAR(255) NULL
-                """)
-            if "resolution_status" not in columns:
-                cursor.execute("""
-                    ALTER TABLE semantic_dependencies
-                    ADD COLUMN resolution_status VARCHAR(30) NULL
-                """)
+            for table in ["structural_metrics", "semantic_dependencies", "commits", "commit_files"]:
+                cursor.execute(f"SHOW COLUMNS FROM {table}")
+                cols = {row["Field"] for row in cursor.fetchall()}
+                if "repo_name" not in cols:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN repo_name VARCHAR(255) NOT NULL DEFAULT 'default'")
 
         self.connection.commit()
-        print("Database schema verified; existing records preserved.")
+        # print("Database schema verified; repository multi-tenancy enabled.")
 
-    def load_structural_data(self, json_path="data/extraction_output/structural_metrics.json"):
+        self.connection.commit()
+        # print("Database schema verified; existing records preserved.")
+
+    def load_structural_data(self, json_path: Path | str, repo_name: str | None = None):
         """Loads graph structural metrics from a JSON file into MySQL
 
         Args:
             json_path (str, optional): Path to the structural metrics JSON file. Defaults to "data/extraction_output/structural_metrics.json".
         """     
-        if not Path(json_path).exists():
+        json_path = Path(json_path)
+        if not json_path.exists():
             print(f"Skipping {json_path}: file not found.")
             return
-        
-        with open(json_path, "r") as f:
+
+        if repo_name is None:
+            repo_name = json_path.stem.replace("_structural_metrics", "")
+
+        with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         with self.connection.cursor() as cursor:
             for file_path, metrics in data.items():
                 cursor.execute("""
-                    INSERT INTO structural_metrics (file_path, fan_in, fan_out, pagerank, betweenness)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO structural_metrics (repo_name, file_path, fan_in, fan_out, pagerank, betweenness)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
+                    repo_name,
                     file_path,
                     metrics.get("fan_in", 0),
                     metrics.get("fan_out", 0),
@@ -115,7 +127,7 @@ class DatabaseLoader:
                     metrics.get("betweenness", 0.0)
                 ))
         self.connection.commit()
-        print("Loaded structural metrics into MySQL.")
+        # print(f"Loaded structural metrics for '{repo_name}' into MySQL.")
 
     def load_semantic_data(self, json_path="data/extraction_output/semantic_dependencies.json"):
         """loads semantic dependency data from a JSON file into MySQL
@@ -123,11 +135,15 @@ class DatabaseLoader:
         Args:
             json_path (str, optional): Path to the semantic dependencies JSON file. Defaults to "data/extraction_output/semantic_dependencies.json".
         """        
-        if not Path(json_path).exists():
+        json_path = Path(json_path)
+        if not json_path.exists():
             print(f"Skipping {json_path}: file not found.")
             return
 
-        with open(json_path, "r") as f:
+        if repo_name is None:
+            repo_name = json_path.stem.replace("_semantic_dependencies", "")
+
+        with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         with self.connection.cursor() as cursor:
@@ -135,10 +151,10 @@ class DatabaseLoader:
                 for dep in deps:
                     cursor.execute("""
                         INSERT INTO semantic_dependencies
-                            (source_file, dependency_type, target_name,
-                             target_file, resolution_status)
-                        VALUES (%s, %s, %s, %s, %s)
+                            (repo_name, source_file, dependency_type, target_name, target_file, resolution_status)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                     """, (
+                        repo_name,
                         file_path,
                         dep.get("type", "unknown"),
                         dep.get("target", ""),
@@ -147,19 +163,23 @@ class DatabaseLoader:
                     ))
 
         self.connection.commit()
-        print("Loaded semantic dependencies into MySQL.")
+        # print(f"Loaded semantic dependencies for '{repo_name}' into MySQL.")
 
-    def load_git_data(self, json_path="data/extraction_output/commit_log.json"):
+    def load_git_data(self, json_path: Path | str, repo_name: str | None = None):
         """Loads Git commit history and touched file mappings from a JSON file into MySQL
 
         Args:
             json_path (str, optional): Path to the commit log JSON file. Defaults to "data/extraction_output/commit_log.json".
         """        
-        if not Path(json_path).exists():
+        json_path = Path(json_path)
+        if not json_path.exists():
             print(f"Skipping {json_path}: file not found.")
             return
 
-        with open(json_path, "r") as f:
+        if repo_name is None:
+            repo_name = json_path.stem.replace("_commit_log", "")
+
+        with open(json_path, "r", encoding="utf-8") as f:
             commits = json.load(f)
 
         with self.connection.cursor() as cursor:
@@ -169,25 +189,23 @@ class DatabaseLoader:
                 timestamp = commit.get("timestamp")
                 files = commit.get("files", [])
 
-                # Insert commit metadata
                 cursor.execute("""
-                    INSERT IGNORE INTO commits (commit_hash, author, timestamp)
-                    VALUES (%s, %s, %s)
-                """, (c_hash, author, timestamp))
+                    INSERT IGNORE INTO commits (commit_hash, repo_name, author, timestamp)
+                    VALUES (%s, %s, %s, %s)
+                """, (c_hash, repo_name, author, timestamp))
 
-                # Insert relational mapping for files touched in this commit
                 for file_path in files:
                     cursor.execute("""
-                        INSERT INTO commit_files (commit_hash, file_path)
-                        SELECT %s, %s
+                        INSERT INTO commit_files (repo_name, commit_hash, file_path)
+                        SELECT %s, %s, %s
                         WHERE NOT EXISTS (
                             SELECT 1 FROM commit_files
-                            WHERE commit_hash = %s AND file_path = %s
+                            WHERE commit_hash = %s AND file_path = %s AND repo_name = %s
                         )
-                    """, (c_hash, file_path, c_hash, file_path))
+                    """, (repo_name, c_hash, file_path, c_hash, file_path, repo_name))
 
         self.connection.commit()
-        print("Loaded Git commit logs and file mappings into MySQL.")
+        # print(f"Loaded Git commit logs for '{repo_name}' into MySQL.")
 
     def close(self):
         """Closes the active database connection
@@ -196,8 +214,4 @@ class DatabaseLoader:
 
 if __name__ == "__main__":
     loader = DatabaseLoader()
-    loader.load_structural_data()
-    loader.load_semantic_data()
-    loader.load_git_data()
     loader.close()
-    print("Database ingestion complete!")

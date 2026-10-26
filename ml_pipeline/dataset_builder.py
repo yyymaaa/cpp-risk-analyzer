@@ -5,6 +5,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from rich.console import Console
 
 import pandas as pd
 
@@ -52,7 +53,7 @@ class TemporalDatasetBuilder:
     """builds temporal training dataset combining historical git commit churn and graph
     centralitry metrics across rolling window cutoffs
     """    
-    def __init__(self, repo_path=REPO_PATH):
+    def __init__(self, repo_path: Path | str):
         """initialized the dataset builder with target repository path and structural baselines
 
         Args:
@@ -165,29 +166,40 @@ class TemporalDatasetBuilder:
         """        
         commits = self.read_git_history()
 
-        lookback = LOOKBACK_DAYS * 86400
-        horizon = HORIZON_DAYS * 86400
-        step = STEP_DAYS * 86400
-
         first_timestamp = min(c["timestamp"] for c in commits)
         last_timestamp = max(c["timestamp"] for c in commits)
+        timespan_days = (last_timestamp - first_timestamp) / 86400
+
+        MIN_SPAN_DAYS = 180
+        if timespan_days < MIN_SPAN_DAYS:
+            print(f"\n[Notice] Repository Git history spans {timespan_days:.1f} days (minimum required: {MIN_SPAN_DAYS} days).")
+            print("[Notice] Skipping ML temporal dataset construction. Pipeline will operate in Structural Fallback Mode.")
+            return None
+
+        lookback = LOOKBACK_DAYS * 86400
+        horizon = HORIZON_DAYS * 86400
 
         first_cutoff = first_timestamp + lookback
         last_cutoff = last_timestamp - horizon
 
         if first_cutoff >= last_cutoff:
-            raise ValueError(
-                "Insufficient Git history for the chosen lookback and horizon."
-            )
+            print("\n[Notice] Insufficient Git history timeline for rolling temporal cutoffs.")
+            print("[Notice] Skipping ML temporal dataset construction.")
+            return None
 
+        step = STEP_DAYS * 86400
         cutoffs = list(range(first_cutoff, last_cutoff + 1, step))
 
         if len(cutoffs) < 5:
-            raise ValueError(
-                f"Only {len(cutoffs)} snapshots available; "
-                "at least five are required for a chronological split."
-            )
+            available_span = last_cutoff - first_cutoff
+            step = max(86400, available_span // 5)
+            cutoffs = list(range(first_cutoff, last_cutoff + 1, step))
 
+        if len(cutoffs) < 5:
+            print(f"\n[Notice] Only {len(cutoffs)} temporal snapshots available (minimum required: 5).")
+            print("[Notice] Skipping ML temporal dataset construction.")
+            return None
+        
         first_seen = {}
         for commit in commits:
             for path in commit["files"]:
@@ -198,112 +210,112 @@ class TemporalDatasetBuilder:
 
         rows = []
         snapshots_built = 0
+        console = Console()
 
-        for cutoff in cutoffs:
-            history_start = cutoff - lookback
-            future_end = cutoff + horizon
+        with console.status("[#b28dff]Building temporal snapshots...", spinner="pong") as status:
+            for cutoff in cutoffs:
+                history_start = cutoff - lookback
+                future_end = cutoff + horizon
 
-            history = [
-                c for c in commits
-                if history_start < c["timestamp"] <= cutoff
-            ]
-            
-            # Path A: Look at all future commits to measure true change propagation,
-            # dropping the noisy "corrective" keyword filter entirely.
-            future_commits = [
-                c for c in commits
-                if cutoff < c["timestamp"] <= future_end
-            ]
+                history = [
+                    c for c in commits
+                    if history_start < c["timestamp"] <= cutoff
+                ]
+                
+                future_commits = [
+                    c for c in commits
+                    if cutoff < c["timestamp"] <= future_end
+                ]
 
-            # Reconstruct structural features as of this exact cutoff.
-            commit_id, graph = historical_graph(
-                self.repo_path, cutoff
-            )
-            metrics_by_path = StructuralAnalyzer(
-                graph
-            ).calculate_metrics()
-            snapshots_built += 1
+                commit_id, graph = historical_graph(
+                    self.repo_path, cutoff
+                )
+                metrics_by_path = StructuralAnalyzer(
+                    graph
+                ).calculate_metrics()
+                snapshots_built += 1
 
-            print(
-                f"Snapshot {snapshots_built}/{len(cutoffs)}: "
-                f"{datetime.fromtimestamp(cutoff, tz=timezone.utc).isoformat()} "
-                f"commit={commit_id[:12]} "
-                f"nodes={graph.number_of_nodes()}"
-            )
+                status.update(f"[#b28dff]Processing Snapshot {snapshots_built}/{len(cutoffs)}... (nodes={graph.number_of_nodes()})[/]")
 
-            file_commits = defaultdict(int)
-            file_corrective = defaultdict(int)
-            file_cochanges = defaultdict(set)
-            file_cochange_events = defaultdict(int)
-            last_change = {}
+                file_commits = defaultdict(int)
+                file_corrective = defaultdict(int)
+                file_cochanges = defaultdict(set)
+                file_cochange_events = defaultdict(int)
+                last_change = {}
 
-            for commit in history:
-                files = commit["files"]
+                # Ignore bulk formatting/refactoring commits touching over 50 files
+                MAX_COMMIT_SIZE = 50
 
-                for path in files:
-                    file_commits[path] += 1
-                    last_change[path] = max(
-                        last_change.get(path, 0),
-                        commit["timestamp"],
-                    )
+                for commit in history:
+                    files = commit["files"]
+                    if len(files) > MAX_COMMIT_SIZE:
+                        continue
 
-                    if commit["corrective"]:
-                        file_corrective[path] += 1
-
-                    for other in files:
-                        if other != path:
-                            file_cochanges[path].add(other)
-                            file_cochange_events[path] += 1
-
-            # Path A: Calculate continuous blast radius (co-change impact)
-            future_cochange_impact = defaultdict(set)
-            for commit in future_commits:
-                files = commit["files"]
-                for path in files:
-                    # Add all OTHER files in this commit to the impacted set for `path`
-                    future_cochange_impact[path].update(f for f in files if f != path)
-
-            cutoff_date = datetime.fromtimestamp(
-                cutoff, tz=timezone.utc
-            ).date().isoformat()
-
-            for path in sorted(self.current_files):
-                if first_seen.get(path, last_timestamp + 1) > cutoff:
-                    continue
-
-                metrics = metrics_by_path.get(path)
-                if metrics is None:
-                    continue
-
-                previous_change = last_change.get(path)
-
-                rows.append({
-                    "file_path": path,
-                    "cutoff_date": cutoff_date,
-                    "fan_in": numeric_metric(metrics, "fan_in"),
-                    "fan_out": numeric_metric(metrics, "fan_out"),
-                    "pagerank": numeric_metric(metrics, "pagerank"),
-                    "betweenness": numeric_metric(
-                        metrics, "betweeness_centrality"
-                    ),
-                    "historical_commit_count_365d": file_commits[path],
-                    "historical_corrective_count_365d": file_corrective[path],
-                    "historical_cochange_file_count_365d": len(
-                        file_cochanges[path]
-                    ),
-                    "historical_cochange_event_count_365d":
-                        file_cochange_events[path],
-                    "days_since_last_change": (
-                        min(
-                            LOOKBACK_DAYS,
-                            (cutoff - previous_change) // 86400,
+                    for path in files:
+                        file_commits[path] += 1
+                        last_change[path] = max(
+                            last_change.get(path, 0),
+                            commit["timestamp"],
                         )
-                        if previous_change is not None
-                        else LOOKBACK_DAYS
-                    ),
-                    # Target is now a continuous integer instead of 0 or 1
-                    "future_cochange_blast_radius_90d": len(future_cochange_impact.get(path, set())),
-                })
+
+                        if commit["corrective"]:
+                            file_corrective[path] += 1
+
+                        for other in files:
+                            if other != path:
+                                file_cochanges[path].add(other)
+                                file_cochange_events[path] += 1
+
+                # Calculate continuous blast radius excluding bulk refactors
+                future_cochange_impact = defaultdict(set)
+                for commit in future_commits:
+                    files = commit["files"]
+                    if len(files) > MAX_COMMIT_SIZE:
+                        continue
+
+                    for path in files:
+                        future_cochange_impact[path].update(f for f in files if f != path)
+
+                cutoff_date = datetime.fromtimestamp(
+                    cutoff, tz=timezone.utc
+                ).date().isoformat()
+
+                for path in sorted(self.current_files):
+                    if first_seen.get(path, last_timestamp + 1) > cutoff:
+                        continue
+
+                    metrics = metrics_by_path.get(path)
+                    if metrics is None:
+                        continue
+
+                    previous_change = last_change.get(path)
+
+                    rows.append({
+                        "file_path": path,
+                        "cutoff_date": cutoff_date,
+                        "fan_in": numeric_metric(metrics, "fan_in"),
+                        "fan_out": numeric_metric(metrics, "fan_out"),
+                        "pagerank": numeric_metric(metrics, "pagerank"),
+                        "betweenness": numeric_metric(
+                            metrics, "betweeness_centrality"
+                        ),
+                        "historical_commit_count_365d": file_commits[path],
+                        "historical_corrective_count_365d": file_corrective[path],
+                        "historical_cochange_file_count_365d": len(
+                            file_cochanges[path]
+                        ),
+                        "historical_cochange_event_count_365d":
+                            file_cochange_events[path],
+                        "days_since_last_change": (
+                            min(
+                                LOOKBACK_DAYS,
+                                (cutoff - previous_change) // 86400,
+                            )
+                            if previous_change is not None
+                            else LOOKBACK_DAYS
+                        ),
+                        "future_cochange_blast_radius_90d": len(future_cochange_impact.get(path, set())),
+                    })
 
         if not rows:
             raise ValueError(
@@ -334,20 +346,16 @@ class TemporalDatasetBuilder:
         destination.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(destination, index=False)
 
-        print(f"\nGit commits parsed: {len(commits)}")
-        print(f"Current structural files: {len(self.current_files)}")
-        print(f"Temporal snapshots built: {snapshots_built}")
-        print(f"Dataset rows: {len(df)}")
-        
         train_df = df[df["split"] == "train"]
         test_df = df[df["split"] == "test"]
-        
-        print(f"Training rows: {len(train_df)}")
-        print(f"Test rows: {len(test_df)}")
-        print(f"Mean train blast radius: {train_df['future_cochange_blast_radius_90d'].mean():.2f}")
-        print(f"Mean test blast radius: {test_df['future_cochange_blast_radius_90d'].mean():.2f}")
-        print(f"Saved dataset: {destination}")
 
+        console.print("\n[bold #ff70a6]✔ Temporal Dataset Built Successfully[/]")
+        console.print(f"  [#c77dff]Git commits parsed:[/] {len(commits)}")
+        console.print(f"  [#c77dff]Temporal snapshots:[/] {snapshots_built}")
+        console.print(f"  [#c77dff]Dataset rows:[/] {len(df)} ({len(train_df)} train / {len(test_df)} test)")
+        console.print(f"  [#b28dff]Mean train blast radius:[/] {train_df['future_cochange_blast_radius_90d'].mean():.2f}")
+        console.print(f"  [#b28dff]Mean test blast radius:[/] {test_df['future_cochange_blast_radius_90d'].mean():.2f}")
+        
         return df
 
 
