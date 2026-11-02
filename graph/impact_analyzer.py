@@ -7,6 +7,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
+from graph.cochange import CoChangeIndex
+from graph.impact_report import compute_report, render
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -45,6 +47,8 @@ class ChangeImpactAnalyzer:
         dataset_path = PROJECT_ROOT / "data" / "ml_datasets" / f"{repo_name}_training_dataset.csv"
         model_path = PROJECT_ROOT / "models" / f"{repo_name}_rf_regressor.joblib"
 
+        self.trust = None
+
         self.has_model = model_path.exists() and dataset_path.exists()
 
         if self.has_model:
@@ -66,6 +70,8 @@ class ChangeImpactAnalyzer:
 
                 self.current_state['predicted_blast_radius'] = self.model.predict(self.current_state[self.features])
                 self.current_state.set_index('file_path', inplace=True)
+                self.trust = self._load_trust(repo_name)
+
         else:
             console.print(f"[warning]Notice: Running in Structural Fallback Mode (No ML model available for '{repo_name}').[/]")
 
@@ -73,6 +79,9 @@ class ChangeImpactAnalyzer:
             files = scan_repository(self.repo_path)
             dependencies = {f: extract_includes(f) for f in files}
             self.graph = build_dependency_graph(self.repo_path, files, dependencies)
+
+        with console.status("[info]Mining git co-change history...[/]", spinner="pong"):
+            self.cochange = CoChangeIndex.mine(self.repo_path, PROJECT_ROOT / "data" / "cache")
 
         # BUG FIX: Unconditionally load the metrics JSON so it is available for fallback lookups
         metrics_file = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_structural_metrics.json"
@@ -82,108 +91,37 @@ class ChangeImpactAnalyzer:
         else:
             self.metrics = StructuralAnalyzer(self.graph).calculate_metrics()
 
-    def generate_explanation(self, file_path, row):
-        """Generates human-readable explanation messages per file based on feature thresholds
 
-        Args:
-            file_path (_type_): Relative file path being evaluated
-            row (_type_): Dataset row containing metrics for the specified file
-
-        Returns:
-            _type_: Explanatory statements identifying structural or historical risk factors
-        """        
-        """Phase 11: Generate human-readable per-file explanations"""
-        reasons = []
-        
-        # Check structural risk factors
-        reasons = []
-        
-        if row['pagerank'] > self.percentiles_90['pagerank']:
-            reasons.append("High Structural Centrality: PageRank is in top 10% of codebase.")
-        if row['fan_in'] > self.percentiles_90['fan_in']:
-            reasons.append(f"High Coupling: {int(row['fan_in'])} other files directly depend on this.")
-
-        if row['days_since_last_change'] < self.percentiles_90['days_since_last_change']:
-            if row['historical_commit_count_365d'] > self.medians['historical_commit_count_365d']:
-                reasons.append(f"Historical Volatility: Active recently with {int(row['historical_commit_count_365d'])} commits in last year.")
-        
-        if row['historical_cochange_file_count_365d'] > self.percentiles_90['historical_cochange_file_count_365d']:
-            reasons.append("Ripple Effect: Historically triggers widespread co-changes when modified.")
-
-        if not reasons:
-            reasons.append("Standard risk profile.")
-
-        return reasons
-
-    def analyze_impact(self, target_file):
-        """Perform change-impact analysis for a target file via graph traversal and ML scoring
-
-        Args:
-            target_file (_type_): relative file path within the repository to analyze
-        """        
+    def analyze_impact(self, target_file, show_all=False):
         if target_file not in self.graph.nodes:
-            console.print(f"[error]Error: '{target_file}' not found in the structural graph.[/error]")
-            return
+            console.print(f"[error]'{target_file}' not found in the structural graph.[/error]")
+            return None
+        report = compute_report(self, target_file)
+        render(report, console, show_all=show_all)
+        return report
 
-        dependents = list(nx.ancestors(self.graph, target_file))
-        mode_text = "Machine Learning Predicted Risk" if self.has_model else "Structural Centrality Fallback"
-
-        # Styled Banner
-        banner_text = Text(f"CHANGE IMPACT REPORT", style="bold #ff70a6", justify="center")
-        banner_text.append(f"\nTarget: {target_file}", style="#c77dff")
-        banner_text.append(f"\nMode: {mode_text}", style="#b28dff")
-        banner_text.append(f"\nDirect & Transitive Dependents: {len(dependents)}", style="bold white")
-        console.print(Panel(banner_text, border_style="#b28dff", padding=(1, 2)))
-
-        impacted_files = []
-        for dep in dependents:
-            if self.has_model and dep in self.current_state.index:
-                row = self.current_state.loc[dep]
-                impacted_files.append({
-                    'file': dep,
-                    'risk_score': row['predicted_blast_radius'],
-                    'label': 'Predicted Blast Radius',
-                    'explanation': self.generate_explanation(dep, row)
-                })
-            else:
-                node_metrics = self.metrics.get(dep, {})
-                fan_in = node_metrics.get("fan_in", 0)
-                pagerank = node_metrics.get("pagerank", 0.0)
-
-                struct_score = (pagerank * 10.0) + fan_in
-                reasons = []
-                if fan_in > 0:
-                    reasons.append(f"Structural Coupling: {fan_in} dependent file(s).")
-                if pagerank > 0.01:
-                    reasons.append(f"High Structural Centrality: PageRank = {pagerank:.4f}.")
-                if not reasons:
-                    reasons.append("Leaf node in dependency graph.")
-
-                impacted_files.append({
-                    'file': dep,
-                    'risk_score': struct_score,
-                    'label': 'Structural Risk Score',
-                    'explanation': reasons
-                })
-
-        if not impacted_files:
-            console.print("[info]No dependents found. This file is a leaf node.[/]")
-            return
-
-        impacted_files.sort(key=lambda x: x['risk_score'], reverse=True)
-
-        # Styled Table for Hotspots
-        table = Table(title="Top Risk Hotspots to Test / Review", border_style="#b28dff", header_style="bold #ff70a6", title_style="bold #c77dff")
-        table.add_column("Dependent File", style="bold white")
-        table.add_column("Risk Score", justify="right", style="#c77dff")
-        table.add_column("Key Drivers", style="#b28dff")
-
-        for item in impacted_files[:10]:
-            drivers = "\n".join([f"• {reason}" for reason in item['explanation']])
-            table.add_row(item['file'], f"{item['risk_score']:.2f}", drivers)
-            table.add_row("", "", "") # Add spacing between entries
-
-        console.print(table)
+    def _load_trust(self, repo_name):
+        """Model accuracy: saved by train_model.py, or recomputed from the held-out split."""
+        f = PROJECT_ROOT / "models" / f"{repo_name}_model_metrics.json"
+        try:
+            if f.exists():
+                return json.loads(f.read_text())
+            import numpy as np
+            from sklearn.metrics import mean_squared_error, r2_score
+            tr, te = self.df[self.df["split"] == "train"], self.df[self.df["split"] == "test"]
+            if te.empty:
+                return None
+            tgt = "future_cochange_blast_radius_90d"
+            pred = self.model.predict(te[self.features])
+            return {
+                "r2": float(r2_score(te[tgt], pred)),
+                "rmse": float(np.sqrt(mean_squared_error(te[tgt], pred))),
+                "baseline_rmse": float(np.sqrt(mean_squared_error(te[tgt], np.full(len(te), tr[tgt].mean())))),
+                "test_from": str(te["cutoff_date"].min())[:10],
+                "test_to": str(te["cutoff_date"].max())[:10],
+            }
+        except Exception:
+            return None
 
 
 if __name__ == "__main__":

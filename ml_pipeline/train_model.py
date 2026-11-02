@@ -9,8 +9,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import joblib
 import numpy as np
 import pandas as pd
+import json
+
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 
 MODEL_DIR = PROJECT_ROOT / "models"
 
@@ -52,13 +55,26 @@ def train(repo_path: Path | str):
         status.update("[#b28dff]Evaluating Model on Held-Out Test Set...")
         predictions = model.predict(X_test)
 
+    # 1. Model Metrics
     rmse = np.sqrt(mean_squared_error(y_test, predictions))
     mae = mean_absolute_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
 
-    # Heuristic Baseline (Predicting mean blast radius)
+    # 2. Baseline Metrics (Calculate BEFORE building trust dict)
     baseline_predictions = np.full_like(y_test, y_train.mean(), dtype=float)
     baseline_rmse = np.sqrt(mean_squared_error(y_test, baseline_predictions))
+
+    # 3. Export JSON Metadata
+    trust = {
+        "r2": float(r2), "rmse": float(rmse), "mae": float(mae),
+        "baseline_rmse": float(baseline_rmse),
+        "train_rows": int(len(train_df)), "test_rows": int(len(test_df)),
+        "test_from": str(test_df["cutoff_date"].min())[:10],
+        "test_to": str(test_df["cutoff_date"].max())[:10],
+    }
+    
+    MODEL_DIR.mkdir(exist_ok=True)
+    (MODEL_DIR / f"{repo_name}_model_metrics.json").write_text(json.dumps(trust, indent=2))
 
     # Format tables using Rich
     metrics_table = Table(title="Final Evaluation Metrics", border_style="#b28dff", header_style="bold #ff70a6")
@@ -74,7 +90,6 @@ def train(repo_path: Path | str):
     console.print(metrics_table)
 
     # Export repository-specific artifacts
-    MODEL_DIR.mkdir(exist_ok=True)
     model_output = MODEL_DIR / f"{repo_name}_rf_regressor.joblib"
     joblib.dump(model, model_output)
 
