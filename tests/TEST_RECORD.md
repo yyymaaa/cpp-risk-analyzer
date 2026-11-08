@@ -2,7 +2,7 @@
 
 Generated 2026-11-08 by `tests/make_test_record.py` from two pytest runs (before and after corrective actions).
 
-- Tests: **45**  ·  initial run: **41 passed, 4 failed**  ·  final run: **45 passed, 0 failed**
+- Tests: **47**  ·  initial run: **42 passed, 5 failed**  ·  final run: **47 passed, 0 failed**
 - Requirement IDs refer to Chapter 4 (FR = functional, NFR = non-functional requirement).
 - Final run recorded on Linux. GitHub Actions also runs the full suite on Windows and macOS on every push; see the Actions tab for those runs.
 - Run them yourself: `pip install -e ".[test]"` then `python -m pytest` (add `-m "not slow"` to skip the end-to-end tests).
@@ -14,7 +14,7 @@ Generated 2026-11-08 by `tests/make_test_record.py` from two pytest runs (before
 | T03 | end_to_end | The dataset is split by time, and no training label window overlaps the test period. | FR4, NFR2 (valid evaluation) | every train cutoff < every test cutoff; latest train cutoff + 90 days <= first test cutoff after purging (recorded as purged_train_rows in metrics) | Pass | None needed | Pass |
 | T04 | end_to_end | `risk impact` works from inside the developer's own codebase and lists files to review and tests to run. | FR6, Interface 1 | exit 0; report names core.h, shows REVIEW THESE and the test file core_test.cc | Pass | None needed | Pass |
 | T05 | end_to_end | Evaluation output compares the model with all baselines on all metrics. | NFR2, RQ v | metrics JSON has held-out results for Random Forest and 5 baselines incl. the weighted heuristic, each with rmse, mae, r2, spearman, ndcg10 | Pass | None needed | Pass |
-| T06 | end_to_end | Without a model and without a terminal, commands exit with guidance instead of waiting forever. | Usability / robustness | exit code 1 within the timeout; message tells the user to run `risk build` | Pass | None needed | Pass |
+| T06 | end_to_end | Without a model and without a terminal, commands exit with guidance instead of waiting forever. | Usability / robustness | exit code 1 within the timeout; message tells the user to run `risk build` | Fail: [Windows CI] assert 'risk build' in "No model for 'histlib'. Build one now? [Y/n]: " | Defect found by the Windows CI run (passed on Linux and macOS): on Windows, input redirected from the NUL device reports isatty() = True, so the tool showed the 'Build one now?' prompt, received no answer and exited with a bare 'Aborted.'. Fixed in cpp_risk_analyzer/cli.py: on Windows the tool now asks the OS whether stdin is a real console (GetConsoleMode), and an unanswered prompt now prints the `risk build` guidance. Regression tests added (test_no_prompt_without_console, test_unanswered_prompt_gives_guidance). | Pass |
 | T07 | graph | An absolute include pointing outside the repository adds no edge and does not crash. | FR3, robustness (regression test for the RocksDB /usr/include/valgrind crash) | graph builds; no edge to the outside file | Pass | None needed | Pass |
 | T08 | graph | Dependency graph has one node per file and one edge per internal include. | FR3 | 7 nodes; 6 edges (dependent -> dependency); no edges to system headers | Pass | None needed | Pass |
 | T09 | graph | Fan-in, fan-out and PageRank are computed for every file. | FR3 | core.h fan_in 3 and highest PageRank; engine.cc fan_out 1, fan_in 0 | Pass | None needed | Pass |
@@ -42,15 +42,17 @@ Generated 2026-11-08 by `tests/make_test_record.py` from two pytest runs (before
 | T31 | report_cli | Impact analysis finds every file that directly or transitively includes the target. | FR6 | changing core.h reaches 6 files; engine.cc is 2 hops away via util.h | Pass | None needed | Pass |
 | T32 | report_cli | Product code goes to REVIEW/WATCH, tests to RUN, tooling never to REVIEW. | FR6 (maps downstream files to testing actions) | tests/core_test.cc tier RUN; tools/cli.cc not REVIEW; at least one product file in REVIEW | Pass | None needed | Pass |
 | T33 | report_cli | The pre-commit hook is a POSIX sh script that Git can run on Linux, macOS and Windows (Git Bash). | Interface 1, Windows support | hook starts with #!/bin/sh, calls `check --gate`, has LF line endings and no backslashes in paths | Pass | None needed | Pass |
-| T34 | report_cli | RISK_HOME overrides where models and data are stored. | Deployment (pip install works outside the project folder) | models_dir() and datasets_dir() are inside RISK_HOME | Pass | None needed | Pass |
-| T35 | report_cli | On Linux, an installed tool stores data in the XDG data folder. | Deployment (pip install works outside the project folder) | storage_root() == $XDG_DATA_HOME/cpp-risk-analyzer | Pass | None needed | Pass |
-| T36 | report_cli | On macOS, an installed tool stores data in ~/Library/Application Support. | Deployment, macOS support | storage_root() == ~/Library/Application Support/cpp-risk-analyzer | Pass | None needed | Pass |
-| T37 | report_cli | On Windows, an installed tool stores data in %LOCALAPPDATA%. | Deployment, Windows support | storage_root() == %LOCALAPPDATA%/cpp-risk-analyzer | Pass | None needed | Pass |
-| T38 | report_cli | The report states measured accuracy, the best baseline and low-activity warnings. | FR6, honest uncertainty (Sprint III) | text contains R², both baseline errors and the warning | Pass | None needed | Pass |
-| T39 | report_cli | A file nothing depends on has an empty impact set and the lowest grade. | FR6 | engine.cc reaches 0 files; grade LOW | Pass | None needed | Pass |
-| T40 | scanner_resolver | An include written relative to include/ resolves to the repository file. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
-| T41 | scanner_resolver | A quoted include that does not exist is reported as unresolved. | FR1 | status "unresolved", no target | Pass | None needed | Pass |
-| T42 | scanner_resolver | An include relative to the including file's folder resolves. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
-| T43 | scanner_resolver | A standard-library header is classified as external, not a repository dependency. | FR1 | status "external", no target | Pass | None needed | Pass |
-| T44 | scanner_resolver | Scanner returns C/C++ sources and headers, sorted, and nothing else. | FR1 | exactly the 7 .h/.cc files of the fixture; README.md and CMakeLists.txt excluded | Pass | None needed | Pass |
-| T45 | scanner_resolver | Vendored and build directories are excluded from analysis. | FR1, data preparation | files under third-party/ and build/ are not returned | Pass | None needed | Pass |
+| T34 | report_cli | Without a usable console (scripts, CI, Windows NUL input), no prompt is shown; the user is told what to do. | Usability / robustness, Windows support | exits with code 1 and prints "Run `risk build ...` first"; the build prompt is never called | Pass | None needed | Pass |
+| T35 | report_cli | RISK_HOME overrides where models and data are stored. | Deployment (pip install works outside the project folder) | models_dir() and datasets_dir() are inside RISK_HOME | Pass | None needed | Pass |
+| T36 | report_cli | On Linux, an installed tool stores data in the XDG data folder. | Deployment (pip install works outside the project folder) | storage_root() == $XDG_DATA_HOME/cpp-risk-analyzer | Pass | None needed | Pass |
+| T37 | report_cli | On macOS, an installed tool stores data in ~/Library/Application Support. | Deployment, macOS support | storage_root() == ~/Library/Application Support/cpp-risk-analyzer | Pass | None needed | Pass |
+| T38 | report_cli | On Windows, an installed tool stores data in %LOCALAPPDATA%. | Deployment, Windows support | storage_root() == %LOCALAPPDATA%/cpp-risk-analyzer | Pass | None needed | Pass |
+| T39 | report_cli | The report states measured accuracy, the best baseline and low-activity warnings. | FR6, honest uncertainty (Sprint III) | text contains R², both baseline errors and the warning | Pass | None needed | Pass |
+| T40 | report_cli | If the build prompt gets no answer (input closed), the user gets guidance instead of a bare "Aborted". | Usability / robustness, Windows support (regression test for the Windows CI failure) | exits with code 1 and prints "Run `risk build ...` first" | Pass | None needed | Pass |
+| T41 | report_cli | A file nothing depends on has an empty impact set and the lowest grade. | FR6 | engine.cc reaches 0 files; grade LOW | Pass | None needed | Pass |
+| T42 | scanner_resolver | An include written relative to include/ resolves to the repository file. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
+| T43 | scanner_resolver | A quoted include that does not exist is reported as unresolved. | FR1 | status "unresolved", no target | Pass | None needed | Pass |
+| T44 | scanner_resolver | An include relative to the including file's folder resolves. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
+| T45 | scanner_resolver | A standard-library header is classified as external, not a repository dependency. | FR1 | status "external", no target | Pass | None needed | Pass |
+| T46 | scanner_resolver | Scanner returns C/C++ sources and headers, sorted, and nothing else. | FR1 | exactly the 7 .h/.cc files of the fixture; README.md and CMakeLists.txt excluded | Pass | None needed | Pass |
+| T47 | scanner_resolver | Vendored and build directories are excluded from analysis. | FR1, data preparation | files under third-party/ and build/ are not returned | Pass | None needed | Pass |

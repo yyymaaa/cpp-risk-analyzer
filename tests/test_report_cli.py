@@ -154,3 +154,32 @@ def test_installed_hook_is_portable(tiny_repo):
     hook = (tiny_repo / ".git" / "hooks" / "pre-commit").read_bytes()
     assert hook.startswith(b"#!/bin/sh\n")
     assert b"check --gate" in hook and b"\r\n" not in hook and b"\\" not in hook
+
+
+def test_no_prompt_without_console(tiny_repo, risk_home, monkeypatch, capsys):
+    """Without a usable console (scripts, CI, Windows NUL input), no prompt is shown; the user is told what to do.
+    Req: Usability / robustness, Windows support
+    Expected: exits with code 1 and prints "Run `risk build ...` first"; the build prompt is never called
+    """
+    from cpp_risk_analyzer import cli
+    monkeypatch.setattr(cli, "_interactive", lambda: False)
+    monkeypatch.setattr(cli.typer, "confirm", lambda *a, **k: pytest.fail("prompted without a console"))
+    with pytest.raises(typer.Exit) as e:
+        cli._analyzer(tiny_repo)
+    assert e.value.exit_code == 1 and "risk build" in capsys.readouterr().out
+
+
+def test_unanswered_prompt_gives_guidance(tiny_repo, risk_home, monkeypatch, capsys):
+    """If the build prompt gets no answer (input closed), the user gets guidance instead of a bare "Aborted".
+    Req: Usability / robustness, Windows support (regression test for the Windows CI failure)
+    Expected: exits with code 1 and prints "Run `risk build ...` first"
+    """
+    from cpp_risk_analyzer import cli
+
+    def no_answer(*a, **k):
+        raise typer.Abort()
+    monkeypatch.setattr(cli, "_interactive", lambda: True)
+    monkeypatch.setattr(cli.typer, "confirm", no_answer)
+    with pytest.raises(typer.Exit) as e:
+        cli._analyzer(tiny_repo)
+    assert e.value.exit_code == 1 and "risk build" in capsys.readouterr().out

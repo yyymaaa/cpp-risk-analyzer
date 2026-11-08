@@ -98,14 +98,43 @@ def build(repo: Optional[Path] = typer.Argument(None), verbose: bool = typer.Opt
                   f"(set RISK_HOME to change this).[/]")
 
 
+def _interactive() -> bool:
+    """True only when a person can answer a prompt on stdin.
+
+    On Windows, input redirected from the NUL device (scripts, CI) still reports isatty() == True,
+    so also ask Windows whether stdin is a real console.
+    """
+    try:
+        if sys.stdin is None or not sys.stdin.isatty():
+            return False
+        if os.name == "nt":
+            import ctypes
+            import msvcrt
+            mode = ctypes.c_uint32()
+            handle = msvcrt.get_osfhandle(sys.stdin.fileno())
+            return bool(ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+        return True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def _no_model(repo: Path):
+    console.print(f"[bold #ff70a6]No model for '{repo.name}'.[/] Run `risk build {repo}` first "
+                  f"(models are stored by folder name, so a renamed clone needs its own build).")
+    raise typer.Exit(1)
+
+
 def _analyzer(repo: Path):
     if not has_model(repo):
         # Never wait for an answer that can't come (scripts, CI, piped input): say what to do instead.
-        if not sys.stdin.isatty():
-            console.print(f"[bold #ff70a6]No model for '{repo.name}'.[/] Run `risk build {repo}` first "
-                          f"(models are stored by folder name, so a renamed clone needs its own build).")
-            raise typer.Exit(1)
-        if typer.confirm(f"No model for '{repo.name}'. Build one now?", default=True):
+        if not _interactive():
+            _no_model(repo)
+        try:
+            build_now = typer.confirm(f"No model for '{repo.name}'. Build one now?", default=True)
+        except (typer.Abort, EOFError):          # the prompt got no answer after all
+            console.print()
+            _no_model(repo)
+        if build_now:
             build(repo, False)
     from cpp_risk_analyzer.graph.impact_analyzer import ChangeImpactAnalyzer
     return ChangeImpactAnalyzer(repo)

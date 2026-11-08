@@ -29,6 +29,12 @@ CORRECTIVE_ACTIONS = {
         "Defect: valid includes such as `#  include \"a.h\"` and `#include<b.h>` were silently missed. Fixed by the "
         "same regular expression (allows whitespace after `#` and none before the delimiter). Effect on real "
         "repositories: +29 include edges in RocksDB, +42 in Catch2, none in LevelDB or Abseil.",
+    "test_no_model_does_not_hang":
+        "Defect found by the Windows CI run (passed on Linux and macOS): on Windows, input redirected from the NUL "
+        "device reports isatty() = True, so the tool showed the 'Build one now?' prompt, received no answer and exited "
+        "with a bare 'Aborted.'. Fixed in cpp_risk_analyzer/cli.py: on Windows the tool now asks the OS whether stdin is "
+        "a real console (GetConsoleMode), and an unanswered prompt now prints the `risk build` guidance. Regression tests "
+        "added (test_no_prompt_without_console, test_unanswered_prompt_gives_guidance).",
     "test_purge_removes_overlapping_labels":
         "Test defect, not a code defect: the test expected a row whose 90-day label window ends exactly on the "
         "first test date to be purged. That window does not overlap the test labels (which start after that "

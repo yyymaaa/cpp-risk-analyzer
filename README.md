@@ -133,7 +133,7 @@ Mount the target repository under **its real folder name** (models are stored by
 
 ## Testing
 ```bash
-python -m pytest                 # all 45 tests (about 30 seconds)
+python -m pytest                 # all 47 tests (about 30 seconds)
 python -m pytest -m "not slow"   # unit tests only (a few seconds)
 ```
 The suite covers include parsing, path resolution, graph construction and metrics, co-change mining, leakage prevention (purging and baselines), evaluation metrics, impact-report tiers, storage paths, CLI path handling, and end-to-end runs of `build`, `impact` and `check` on a generated repository with four years of Git history. GitHub Actions runs it on every push and pull request on **Linux, macOS and Windows** (Python 3.12, plus 3.10 on Linux), and also checks on all three that a normal `pip install` works outside the project folder. The full test record (test, requirement, expected result, actual result, corrective action) is in [`tests/TEST_RECORD.md`](tests/TEST_RECORD.md).
