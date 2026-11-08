@@ -1,12 +1,19 @@
 [project]
 name = "cpp-risk-analyzer"
-version = "1.1.0"
+version = "1.0.0"
 requires-python = ">=3.10"
-dependencies = ["typer", "rich", "networkx", "pandas", "scikit-learn", "joblib"]
+dependencies = ["typer", "rich", "networkx", "scipy", "pandas", "numpy", "scikit-learn", "joblib", "PyMySQL"]
 
 [project.scripts]
 risk = "risk_cli:app"
 
 [tool.setuptools]
 py-modules = ["risk_cli"]
-packages = ["core", "graph", "ml_pipeline"]
+packages = ["core", "graph", "ml_pipeline", "database", "git_mining", "semantic"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: end-to-end tests that run the full pipeline (deselect with -m 'not slow')"]

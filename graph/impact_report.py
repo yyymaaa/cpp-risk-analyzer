@@ -7,7 +7,7 @@ import pandas as pd
 from rich.panel import Panel
 from rich.text import Text
 
-HOP_PRIOR = {1: 0.50, 2: 0.25, 3: 0.10}   # chance a dependent breaks, by include distance
+HOP_PRIOR = {1: 0.50, 2: 0.25, 3: 0.10}   # hand-set weights by include distance (heuristic, not measured probabilities)
 DEFAULT_PRIOR = 0.04
 REVIEW_AT, WATCH_AT = 55, 30               # score cutoffs: tune on your repos
 MIN_REVIEW, MAX_REVIEW = 5, 12             # review list is never empty, never a wall
@@ -144,6 +144,10 @@ def trust_line(t: dict | None, has_model: bool) -> str | None:
     label = "reliable" if r2 >= 0.6 else "directional" if r2 >= 0.3 else "weak, treat as a hint"
     s = (f"model trust: R² {r2:.2f} ({label}) · typical error ±{t['rmse']:.1f} files "
          f"vs ±{t['baseline_rmse']:.1f} for a naive guess")
+    if t.get("best_baseline_rmse") is not None:
+        s += f", ±{t['best_baseline_rmse']:.1f} for the best simple rule"
+    if t.get("low_activity_test"):
+        s += " · ⚠ test period had little activity"
     if t.get("test_from"):
         s += f" · tested on {t['test_from']} → {t['test_to']}"
     return s
@@ -159,14 +163,17 @@ def render(r: Report, console, show_all: bool = False):
     head.append(f"{r.target}\n", style="bold white")
     head.append(f"{bar(r.target_pct, 20)}  ", style=col)
     head.append(r.grade, style=f"bold {col}")
-    head.append(f"   changes alongside more files than {r.target_pct:.0%} of the repo\n\n", style=LILAC)
+    if "ML" in r.mode:
+        head.append(f"   predicted to change alongside more files than {r.target_pct:.0%} of the repo\n\n", style=LILAC)
+    else:
+        head.append(f"   more central (PageRank) than {r.target_pct:.0%} of the repo\n\n", style=LILAC)
     if r.reachable:
         head.append(f"{r.reachable} files can reach this change.  ", style="white")
         head.append(f"Only {len(review)} need your eyes.", style=f"bold {PINK}")
     else:
         head.append("Nothing #includes this file, so it can't break other files at compile time.\n", style="white")
         head.append("Its risk is behavioral: see what moves with it in git below.", style=f"bold {PINK}")
-    head.append(f"\n{r.mode} · {r.n_target_commits} commits of history", style="dim")
+    head.append(f"\n{r.mode} · this file changed in {r.n_target_commits} commits in the last 2 years", style="dim")
     tl = trust_line(r.trust, "ML" in r.mode)
     if tl:
         head.append(f"\n{tl}", style="dim")
@@ -187,7 +194,7 @@ def render(r: Report, console, show_all: bool = False):
 
         shown = sorted(review + (watch if show_all else []), key=lambda h: h.score, reverse=True)
         limit = len(shown) if show_all else 7
-        console.print(f"\n[bold {PURPLE}]REVIEW THESE[/] [dim]product code, ranked by P(affected) × blast radius[/]")
+        console.print(f"\n[bold {PURPLE}]REVIEW THESE[/] [dim]product code, ranked by risk score (include distance, git co-change, predicted blast radius)[/]")
         for i, h in enumerate(shown[:limit], 1):
             tag = "" if h.tier == "REVIEW" else "  [dim](watch)[/]"
             console.print(f"  [bold white]{i}. {h.file}[/]  [{PINK}]{bar(h.score / 100, 10)} {h.score:.0f}[/]{tag}")
@@ -195,7 +202,7 @@ def render(r: Report, console, show_all: bool = False):
                 console.print(f"     [{LILAC}]{'└' if j == len(h.why) - 1 else '├'}─ {w}[/]")
         hidden_n = len(review) + len(watch) - limit if not show_all else 0
         if len(shown) > limit or (not show_all and watch):
-            console.print(f"  [dim]+ {max(len(shown) - limit, 0) + len(watch)} more (use --all)[/]")
+            console.print(f"  [dim]+ {max(len(shown) - limit, 0) + len(watch)} lower-priority files to watch (use --all)[/]")
 
         if tests:
             total_tests = sum(h.kind == "test" for h in r.hits)

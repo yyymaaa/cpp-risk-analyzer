@@ -3,6 +3,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import pymysql
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -10,6 +11,8 @@ from rich.theme import Theme
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from core import paths
 
 from core.scanner import scan_repository
 from core.parser import extract_includes
@@ -79,7 +82,7 @@ def main():
     console.print("[success]✔ Dependency graph built and validated.[/success]")
 
     # Step 3: Structural Analysis
-    metrics_output = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_structural_metrics.json"
+    metrics_output = paths.extraction_dir() / f"{repo_name}_structural_metrics.json"
     with console.status("[info]Calculating structural metrics (PageRank, Fan-in/out)...", spinner="pong"):
         analyzer = StructuralAnalyzer(graph)
         metrics_output.parent.mkdir(parents=True, exist_ok=True)
@@ -88,20 +91,26 @@ def main():
     console.print(f"[success]✔ Structural metrics exported.[/success]")
 
     # Step 4: Git Mining
-    git_output = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_commit_log.json"
+    git_output = paths.extraction_dir() / f"{repo_name}_commit_log.json"
     with console.status("[info]Mining historical Git commit logs...", spinner="pong"):
         git_analyzer = GitAnalyzer(repository)
         git_analyzer.export_history(output_path=git_output)
         
     console.print(f"[success]✔ Raw Git commit log exported.[/success]")
 
-    # Step 5: MySQL Ingestion
-    with console.status("[info]Ingesting artifacts into MySQL database...", spinner="pong"):
-        db_loader = DatabaseLoader()
-        db_loader.load_structural_data(metrics_output, repo_name=repo_name)
-        db_loader.load_git_data(git_output, repo_name=repo_name)
-        db_loader.close()
-        
+    # Step 5: MySQL Ingestion (optional: the ML pipeline and impact analysis read the JSON files above)
+    try:
+        with console.status("[info]Ingesting artifacts into MySQL database...", spinner="pong"):
+            db_loader = DatabaseLoader()
+            db_loader.load_structural_data(metrics_output, repo_name=repo_name)
+            db_loader.load_git_data(git_output, repo_name=repo_name)
+            db_loader.close()
+    except pymysql.err.OperationalError as e:
+        console.print(f"[warning]⚠ MySQL ingestion skipped: could not connect ({e.args[-1]}).[/warning]")
+        console.print("[warning]  This step is optional; the remaining pipeline uses the exported JSON files. "
+                      "See README → Database (optional).[/warning]\n")
+        return
+
     console.print("[success]✔ JSON artifacts normalized and ingested into MySQL.[/success]\n")
     
 if __name__ == "__main__":

@@ -78,5 +78,7 @@ training_dataset_historical_purged.csv
 
 models/
 
-
-*.patch
+# Build and test artefacts
+dist/
+.pytest_cache/
+test-results.xml

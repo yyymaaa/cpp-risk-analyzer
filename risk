@@ -1,4 +1,16 @@
 #!/bin/bash
+# Legacy wrapper kept for compatibility. The main CLI is `risk` from `pip install -e .`
+# (risk_cli.py), which also provides `check`, `init` and `install-hooks`.
+
+# Run relative to this script's folder, so it works from any directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Use the project's virtual environment if it exists, otherwise the system Python
+if [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
+    PY="$SCRIPT_DIR/.venv/bin/python"
+else
+    PY="python3"
+fi
 
 # Define Pink & Purple RGB ANSI Codes to match the Python Rich theme
 PINK='\e[38;2;255;112;166m'          # #ff70a6
@@ -15,7 +27,7 @@ show_help() {
     echo '/ /___  /_/  /_// _, _// / ___/ / /| |   '
     echo '\____/         /_/ |_/___//____/_/ |_|   '
     echo -e "${RESET}"
-    echo -e "  ${VIBRANT_PURPLE}C++ Dependency Risk Analyzer (v1.0)${RESET}\n"
+    echo -e "  ${VIBRANT_PURPLE}C++ Dependency Risk Analyzer (v1.1)${RESET}\n"
 
     echo -e "${BOLD}${LIGHT_PURPLE}Usage:${RESET}"
     echo -e "  ./risk [command] [options] [arguments]\n"
@@ -47,14 +59,15 @@ case "$COMMAND" in
             echo "Usage: ./risk build <repo_path>"
             exit 1
         fi
-        
+
         # Pass flags (like -v) down to main.py
         REPO=$1
         shift
-        
-        python core/main.py "$REPO" "$@"
-        python ml_pipeline/dataset_builder.py "$REPO"
-        python ml_pipeline/train_model.py "$REPO"
+
+        # Stop at the first failing step instead of training on missing data
+        "$PY" "$SCRIPT_DIR/core/main.py" "$REPO" "$@" || exit 1
+        "$PY" "$SCRIPT_DIR/ml_pipeline/dataset_builder.py" "$REPO" || exit 1
+        "$PY" "$SCRIPT_DIR/ml_pipeline/train_model.py" "$REPO" || exit 1
         ;;
     impact)
         if [ -z "$1" ] || [ -z "$2" ]; then
@@ -62,7 +75,7 @@ case "$COMMAND" in
             echo "Usage: ./risk impact <file_path> <repo_path>"
             exit 1
         fi
-        python graph/impact_analyzer.py "$1" --repo "$2"
+        "$PY" "$SCRIPT_DIR/graph/impact_analyzer.py" "$1" --repo "$2"
         ;;
     *)
         echo -e "${BOLD}${PINK}Error: Unknown command '$COMMAND'.${RESET}"

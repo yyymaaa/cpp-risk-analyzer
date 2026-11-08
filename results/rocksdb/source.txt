@@ -1,0 +1,7 @@
+repository: rocksdb
+commit: 553b52b4a709820fac1dbadc7796506740517582
+commit_date: 2026-10-21
+total_commits: 14213
+shallow: false
+exit_code: 0
+build_seconds: 242

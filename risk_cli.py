@@ -10,6 +10,10 @@ import typer
 from rich.console import Console
 
 ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from core import paths
 console = Console()
 app = typer.Typer(add_completion=False, no_args_is_help=True,
                   help="[bold #ff70a6]RISK[/] — C++ change-impact analyzer")
@@ -75,7 +79,7 @@ def find_repo(repo: Optional[Path]) -> Path:
 
 
 def has_model(repo: Path) -> bool:
-    return (ROOT / "models" / f"{repo.name}_rf_regressor.joblib").exists()
+    return (paths.models_dir() / f"{repo.name}_rf_regressor.joblib").exists()
 
 
 def run(script: str, *args):
@@ -89,19 +93,34 @@ def build(repo: Optional[Path] = typer.Argument(None), verbose: bool = typer.Opt
     run("core/main.py", repo, *(["-v"] if verbose else []))
     run("ml_pipeline/dataset_builder.py", repo)
     run("ml_pipeline/train_model.py", repo)
+    console.print(f"[dim]Models and data for '{repo.name}' are stored in {paths.storage_root()} "
+                  f"(set RISK_HOME to change this).[/]")
 
 
 def _analyzer(repo: Path):
     sys.path.insert(0, str(ROOT))
-    if not has_model(repo) and typer.confirm(f"No model for '{repo.name}'. Build one now?", default=True):
-        build(repo, False)
+    if not has_model(repo):
+        # Never wait for an answer that can't come (scripts, CI, piped input): say what to do instead.
+        if not sys.stdin.isatty():
+            console.print(f"[bold #ff70a6]No model for '{repo.name}'.[/] Run `risk build {repo}` first "
+                          f"(models are stored by folder name, so a renamed clone needs its own build).")
+            raise typer.Exit(1)
+        if typer.confirm(f"No model for '{repo.name}'. Build one now?", default=True):
+            build(repo, False)
     from graph.impact_analyzer import ChangeImpactAnalyzer
     return ChangeImpactAnalyzer(repo)
 
 
 def _rel(repo: Path, f: str) -> str:
+    """Accept a path relative to the current folder, relative to the repo root, or absolute."""
     p = Path(f)
-    return str((p if p.is_absolute() else Path.cwd() / p).resolve().relative_to(repo))
+    candidates = [p] if p.is_absolute() else [Path.cwd() / p, repo / p]
+    for c in candidates:
+        c = c.resolve()
+        if c.is_relative_to(repo) and c.exists():
+            return c.relative_to(repo).as_posix()
+    raise typer.BadParameter(f"'{f}' is not a file inside {repo}. Use a path relative to the repository "
+                             f"root (e.g. include/leveldb/db.h) or to your current folder.")
 
 
 @app.command()
@@ -211,3 +230,6 @@ def init(repo: Optional[Path] = typer.Option(None, "--repo", "-r"),
     subprocess.run(["git", "-C", str(repo), "config", "risk.level", level], check=True)
     console.print(f"[#b28dff]Will ask before any commit rated {level.upper()} or worse. "
                   f"Change it with `risk init --level critical`.[/]")
+
+if __name__ == "__main__":
+    app()

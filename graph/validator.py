@@ -45,7 +45,7 @@ class GraphValidator:
 
         return {
             "node_count": self.graph.number_of_nodes(),
-            "edge_count": self.graph.number_of_nodes(),
+            "edge_count": self.graph.number_of_edges(),
             "isolated_nodes_count": len(isolates),
             "self_loop_count": len(self_loops),
             "disconnected_subgraphs": len(weak_components),

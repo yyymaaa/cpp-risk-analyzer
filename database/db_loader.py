@@ -6,6 +6,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core import paths
+
 class DatabaseLoader:
     """Manages database schema initialization and ingestion of metrics, semantic dependencies, and Git logs into MySQL
     """
@@ -18,7 +20,7 @@ class DatabaseLoader:
             config_path (str, optional): Path to the database configuration JSON file. Defaults to "data/configuration/db_config.json".
         """
         if config_path is None:
-            config_path = PROJECT_ROOT / "data" / "configuration" / "db_config.json"
+            config_path = paths.db_config_path()
         else:
             config_path = Path(config_path)
 

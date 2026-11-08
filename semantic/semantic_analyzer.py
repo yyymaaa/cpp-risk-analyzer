@@ -14,7 +14,7 @@ class SemanticAnalyzer:
         self,
         repository: Path,
         graph: nx.DiGraph,
-        parser_executable: str = "./src/semantic_parser",
+        parser_executable: str = str(Path(__file__).resolve().parent / "semantic_parser"),
     ):
         self.repository = Path(repository).resolve()
         self.graph = graph

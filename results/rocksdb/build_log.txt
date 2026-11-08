@@ -1,0 +1,63 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                              C++ RISK ANALYZER                               │
+│                  Structural Extraction & Ingestion Pipeline                  │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+✔ Found 1400 C++ source files.
+✔ Dependency graph built and validated.
+✔ Structural metrics exported.
+Note: Git miner not compiled ('/home/claude/frozen/git_mining/git_miner' missing), so the exported commit log (used only for MySQL ingestion) will be empty. The ML pipeline reads Git directly and is unaffected. To enable it: bash git_mining/compile_miner.sh
+✔ Raw Git commit log exported.
+Warning: /home/claude/evalhome/data/configuration/db_config.json not found. Attempting connection without password.
+⚠ MySQL ingestion skipped: could not connect (Can't connect to MySQL server on 
+'localhost' ([Errno 111] Connection refused)).
+  This step is optional; the remaining pipeline uses the exported JSON files. 
+See README → Database (optional).
+
+
+✔ Temporal Dataset Built Successfully
+  Git commits parsed: 9485
+  Temporal snapshots: 59
+  Dataset rows: 42931 (27434 train / 15497 test)
+  Mean train blast radius: 8.05
+  Mean test blast radius: 5.36
+                 Held-Out Evaluation (2023-10-16 → 2026-07-02)                  
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Predictor                   ┃   RMSE ┃    MAE ┃     R² ┃ Spearman ┃ NDCG@10% ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Random Forest ★             │ 12.398 │  6.765 │  0.336 │    0.463 │    0.647 │
+│ Baseline: weighted          │ 14.982 │  9.981 │  0.030 │    0.328 │    0.336 │
+│ heuristic                   │        │        │        │          │          │
+│ Baseline: train mean        │ 15.447 │ 10.503 │ -0.031 │   -0.018 │    0.098 │
+│ Baseline: train median      │ 16.127 │  5.360 │ -0.124 │   -0.018 │    0.098 │
+│ Baseline: previous label    │ 14.799 │  6.105 │  0.053 │    0.300 │    0.562 │
+│ Baseline: past co-change    │ 12.747 │  5.881 │  0.298 │    0.423 │    0.635 │
+│ count                       │        │        │        │          │          │
+└─────────────────────────────┴────────┴────────┴────────┴──────────┴──────────┘
+                       Rolling Evaluation (51 snapshots)                        
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Predictor                   ┃   RMSE ┃    MAE ┃     R² ┃ Spearman ┃ NDCG@10% ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Random Forest ★             │ 13.678 │  7.994 │  0.293 │    0.465 │    0.654 │
+│ Baseline: weighted          │ 15.786 │ 10.449 │  0.058 │    0.325 │    0.360 │
+│ heuristic                   │        │        │        │          │          │
+│ Baseline: train mean        │ 16.292 │ 11.034 │ -0.003 │   -0.003 │    0.144 │
+│ Baseline: train median      │ 17.673 │  7.041 │ -0.180 │   -0.003 │    0.144 │
+│ Baseline: previous label    │ 16.744 │  8.093 │ -0.059 │    0.328 │    0.559 │
+│ Baseline: past co-change    │ 14.060 │  7.823 │  0.253 │    0.422 │    0.644 │
+│ count                       │        │        │        │          │          │
+└─────────────────────────────┴────────┴────────┴────────┴──────────┴──────────┘
+Random Forest beats the strongest baseline (Baseline: past co-change count) on 
+held-out RMSE.
+                 Top Risk Predictors                 
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Feature                              ┃ Importance ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ historical_cochange_event_count_365d │     0.4485 │
+│ historical_commit_count_365d         │     0.1087 │
+│ fan_out                              │     0.1035 │
+└──────────────────────────────────────┴────────────┘
+
+✔ Saved trained model to: 
+/home/claude/evalhome/models/rocksdb_rf_regressor.joblib

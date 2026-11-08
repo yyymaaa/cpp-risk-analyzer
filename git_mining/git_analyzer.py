@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from core import paths
 
 class GitAnalyzer:
     def __init__(self, repository: Path | str, miner_executable: Path | str | None = None):
@@ -18,14 +22,15 @@ class GitAnalyzer:
 
         # Default repository-specific output path
         self.default_output = (
-            PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_commit_log.json"
+            paths.extraction_dir() / f"{repo_name}_commit_log.json"
         )
 
         
     def extract_history(self) -> List[Dict]:
         if not self.miner_executable.exists():
-            print(f"Error: Git miner executable not found at '{self.miner_executable}'.")
-            print("Compile it first using: bash git_mining/compile_miner.sh")
+            print(f"Note: Git miner not compiled ('{self.miner_executable}' missing), so the exported "
+                  "commit log (used only for MySQL ingestion) will be empty. The ML pipeline reads Git "
+                  "directly and is unaffected. To enable it: bash git_mining/compile_miner.sh")
             return []
 
         result = subprocess.run(

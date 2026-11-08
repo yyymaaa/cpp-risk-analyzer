@@ -1,0 +1,7 @@
+repository: abseil-cpp
+commit: 28d518b05d0ffef504738ff06f9232d4b65fe505
+commit_date: 2026-11-07
+total_commits: 3990
+shallow: false
+exit_code: 0
+build_seconds: 86

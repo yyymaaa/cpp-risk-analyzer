@@ -7,6 +7,8 @@ from typing import Dict
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core import paths
+
 class StructuralAnalyzer:
     """Calculates network structural metrics (Fan-in, Fan-out, PageRank, Betweeness)
 for a given code dependency graph
@@ -58,7 +60,7 @@ for a given code dependency graph
         metrics = self.calculate_metrics()
             
         if output_path is None:
-            output_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
+            output_path = paths.extraction_dir() / "structural_metrics.json"
         else:
             output_path = Path(output_path)
 

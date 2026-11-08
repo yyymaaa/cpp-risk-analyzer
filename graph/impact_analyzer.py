@@ -7,16 +7,18 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
-from graph.cochange import CoChangeIndex
-from graph.impact_report import compute_report, render
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from core import paths
 
 import joblib
 import networkx as nx
 import pandas as pd
 
+from graph.cochange import CoChangeIndex
+from graph.impact_report import compute_report, render
 from core.scanner import scan_repository
 from core.parser import extract_includes
 from graph.graph_builder import build_dependency_graph
@@ -44,8 +46,8 @@ class ChangeImpactAnalyzer:
         self.repo_path = Path(repo_path).resolve()
         repo_name = self.repo_path.name
 
-        dataset_path = PROJECT_ROOT / "data" / "ml_datasets" / f"{repo_name}_training_dataset.csv"
-        model_path = PROJECT_ROOT / "models" / f"{repo_name}_rf_regressor.joblib"
+        dataset_path = paths.datasets_dir() / f"{repo_name}_training_dataset.csv"
+        model_path = paths.models_dir() / f"{repo_name}_rf_regressor.joblib"
 
         self.trust = None
 
@@ -69,7 +71,7 @@ class ChangeImpactAnalyzer:
                 self.percentiles_90 = self.current_state[self.features].quantile(0.90)
 
                 self.current_state['predicted_blast_radius'] = self.model.predict(self.current_state[self.features])
-                self.current_state.set_index('file_path', inplace=True)
+                self.current_state = self.current_state.set_index('file_path')
                 self.trust = self._load_trust(repo_name)
 
         else:
@@ -81,10 +83,10 @@ class ChangeImpactAnalyzer:
             self.graph = build_dependency_graph(self.repo_path, files, dependencies)
 
         with console.status("[info]Mining git co-change history...[/]", spinner="pong"):
-            self.cochange = CoChangeIndex.mine(self.repo_path, PROJECT_ROOT / "data" / "cache")
+            self.cochange = CoChangeIndex.mine(self.repo_path, paths.cache_dir())
 
         # BUG FIX: Unconditionally load the metrics JSON so it is available for fallback lookups
-        metrics_file = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_structural_metrics.json"
+        metrics_file = paths.extraction_dir() / f"{repo_name}_structural_metrics.json"
         if metrics_file.exists():
             with open(metrics_file, "r") as f:
                 self.metrics = json.load(f)
@@ -102,7 +104,7 @@ class ChangeImpactAnalyzer:
 
     def _load_trust(self, repo_name):
         """Model accuracy: saved by train_model.py, or recomputed from the held-out split."""
-        f = PROJECT_ROOT / "models" / f"{repo_name}_model_metrics.json"
+        f = paths.models_dir() / f"{repo_name}_model_metrics.json"
         try:
             if f.exists():
                 return json.loads(f.read_text())

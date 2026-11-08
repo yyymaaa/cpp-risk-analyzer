@@ -1,0 +1,7 @@
+repository: leveldb
+commit: bb74ef739973a70ca9f0d90788a1da89b788c0ad
+commit_date: 2026-09-01
+total_commits: 449
+shallow: false
+exit_code: 0
+build_seconds: 33

@@ -6,6 +6,8 @@ from rich.table import Table
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core import paths
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -18,7 +20,6 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, n
 from ml_pipeline.dataset_builder import HORIZON_DAYS
 
 
-MODEL_DIR = PROJECT_ROOT / "models"
 
 FEATURES = [
     "fan_in", "fan_out", "pagerank", "betweenness",
@@ -67,11 +68,32 @@ def add_previous_label(df):
     return df.drop(columns="_date")
 
 
+HEURISTIC_WEIGHTS = {   # fixed a priori (equal weights, no tuning): 2 structural + 2 historical signals
+    "fan_in": 0.25,
+    "pagerank": 0.25,
+    "historical_cochange_file_count_365d": 0.25,
+    "historical_commit_count_365d": 0.25,
+}
+
+
+def weighted_heuristic(train_df, test_df):
+    """Manually weighted heuristic baseline (RQ v / NFR 2).
+
+    Each signal is converted to its percentile rank within the file's snapshot (so repositories
+    and snapshots of different sizes are comparable), combined with HEURISTIC_WEIGHTS, and scaled
+    so its average equals the training-label mean (the average weighted rank is 0.5).
+    """
+    score = sum(w * test_df.groupby("cutoff_date")[col].rank(pct=True)
+                for col, w in HEURISTIC_WEIGHTS.items())
+    return score.to_numpy() * 2 * train_df[TARGET].mean()
+
+
 def baseline_predictions(train_df, test_df):
     """Simple non-ML predictors the Random Forest must beat to be worth using."""
     mean = train_df[TARGET].mean()
     hist_mean = max(train_df["historical_cochange_file_count_365d"].mean(), 1e-9)
     return {
+        "Baseline: weighted heuristic": weighted_heuristic(train_df, test_df),
         "Baseline: train mean": np.full(len(test_df), mean),
         "Baseline: train median": np.full(len(test_df), train_df[TARGET].median()),
         "Baseline: previous label": test_df["previous_label"].to_numpy(dtype=float),
@@ -158,7 +180,7 @@ def train(repo_path: Path | str, rolling: bool = True):
     repo_path = Path(repo_path).resolve()
     repo_name = repo_path.name
 
-    dataset_path = PROJECT_ROOT / "data" / "ml_datasets" / f"{repo_name}_training_dataset.csv"
+    dataset_path = paths.datasets_dir() / f"{repo_name}_training_dataset.csv"
     if not dataset_path.exists():
         print(f"\n[Notice] No training dataset found for '{repo_name}'. Skipping Random Forest training.")
         return
@@ -225,12 +247,17 @@ def train(repo_path: Path | str, rolling: bool = True):
         "rolling": {"folds": n_folds, "results": rolling_results} if rolling_results else None,
     }
 
-    MODEL_DIR.mkdir(exist_ok=True)
+    MODEL_DIR = paths.models_dir()
     (MODEL_DIR / f"{repo_name}_model_metrics.json").write_text(json.dumps(trust, indent=2))
 
     console.print(metrics_table(f"Held-Out Evaluation ({trust['test_from']} → {trust['test_to']})", held_out))
     if rolling_results:
         console.print(metrics_table(f"Rolling Evaluation ({n_folds} snapshots)", rolling_results))
+    elif rolling:
+        console.print(f"[#ffb8d1]Rolling evaluation skipped: needs at least {MIN_TRAIN_SNAPSHOTS} earlier "
+                      f"snapshots before a test snapshot, but this dataset has only "
+                      f"{df['cutoff_date'].nunique()} snapshots in total. Is the repository a shallow clone "
+                      f"(`git rev-parse --is-shallow-repository`)?[/]")
 
     verdict = "beats" if rf["rmse"] < held_out[best_baseline]["rmse"] else "does NOT beat"
     console.print(f"[#c77dff]Random Forest {verdict} the strongest baseline ({best_baseline}) on held-out RMSE.[/]")

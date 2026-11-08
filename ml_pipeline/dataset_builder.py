@@ -12,6 +12,8 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core import paths
+
 from graph.historical_graph import historical_graph
 from graph.analyzer import StructuralAnalyzer
 
@@ -72,11 +74,11 @@ class TemporalDatasetBuilder:
             )
 
         # Dynamic repository-specific extraction and output paths
-        self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / f"{repo_name}_structural_metrics.json"
+        self.structural_path = paths.extraction_dir() / f"{repo_name}_structural_metrics.json"
         if not self.structural_path.exists():
-            self.structural_path = PROJECT_ROOT / "data" / "extraction_output" / "structural_metrics.json"
+            self.structural_path = paths.extraction_dir() / "structural_metrics.json"
 
-        self.output_path = PROJECT_ROOT / "data" / "ml_datasets" / f"{repo_name}_training_dataset.csv"
+        self.output_path = paths.datasets_dir() / f"{repo_name}_training_dataset.csv"
 
         with self.structural_path.open() as f:
             self.structural = json.load(f)
@@ -163,7 +165,18 @@ class TemporalDatasetBuilder:
 
         Returns:
             _type_: formatted dataset containing temporal features and target blast radius
-        """        
+        """
+        shallow = subprocess.run(
+            ["git", "-C", str(self.repo_path), "rev-parse", "--is-shallow-repository"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        if shallow == "true":
+            Console().print(
+                "[bold #ff0a54]⚠ Shallow clone detected:[/] only part of the Git history is available, "
+                "so the dataset will have few snapshots. Run "
+                f"`git -C {self.repo_path} fetch --unshallow` for the full history."
+            )
+
         commits = self.read_git_history()
 
         first_timestamp = min(c["timestamp"] for c in commits)
