@@ -1,6 +1,6 @@
-from core.parser import IncludeDirective
-from core.resolver import resolve_include
-from core.scanner import scan_repository
+from cpp_risk_analyzer.core.parser import IncludeDirective
+from cpp_risk_analyzer.core.resolver import resolve_include
+from cpp_risk_analyzer.core.scanner import scan_repository
 
 
 def test_scanner_finds_cpp_files_only(tiny_repo):

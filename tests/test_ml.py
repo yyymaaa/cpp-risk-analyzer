@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ml_pipeline.dataset_builder import HORIZON_DAYS
-from ml_pipeline.train_model import (TARGET, add_previous_label, all_metrics, purge,
+from cpp_risk_analyzer.ml_pipeline.dataset_builder import HORIZON_DAYS
+from cpp_risk_analyzer.ml_pipeline.train_model import (TARGET, add_previous_label, all_metrics, purge,
                                      ranking_scores, weighted_heuristic)
 
 

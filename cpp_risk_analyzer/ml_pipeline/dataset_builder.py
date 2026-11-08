@@ -9,13 +9,11 @@ from rich.console import Console
 
 import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
-from graph.historical_graph import historical_graph
-from graph.analyzer import StructuralAnalyzer
+from cpp_risk_analyzer.graph.historical_graph import historical_graph
+from cpp_risk_analyzer.graph.analyzer import StructuralAnalyzer
 
 LOOKBACK_DAYS = 365
 HORIZON_DAYS = 90
@@ -80,7 +78,7 @@ class TemporalDatasetBuilder:
 
         self.output_path = paths.datasets_dir() / f"{repo_name}_training_dataset.csv"
 
-        with self.structural_path.open() as f:
+        with self.structural_path.open(encoding="utf-8") as f:
             self.structural = json.load(f)
 
         if not isinstance(self.structural, dict) or not self.structural:
@@ -109,7 +107,7 @@ class TemporalDatasetBuilder:
             cwd=self.repo_path,
             check=True,
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
         )
 
         commits = []
@@ -168,7 +166,7 @@ class TemporalDatasetBuilder:
         """
         shallow = subprocess.run(
             ["git", "-C", str(self.repo_path), "rev-parse", "--is-shallow-repository"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
         ).stdout.strip()
         if shallow == "true":
             Console().print(

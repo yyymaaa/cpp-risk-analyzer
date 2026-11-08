@@ -24,9 +24,9 @@ target C++ repo ──► scan files ──► parse #includes ──► depende
 For each snapshot date, features describe the file **as of that date** (graph metrics on the code at that commit, Git activity in the previous 365 days). The label is the number of distinct files that changed together with it in the **following** 90 days.
 
 ## Prerequisites
-Tested on Fedora Linux and Ubuntu 24.04.
+Works on **Linux, macOS and Windows**: the full test suite runs on all three on every push (GitHub Actions).
 - Python 3.10+
-- Git
+- Git (on Windows: [Git for Windows](https://git-scm.com/download/win), which also runs the optional commit hook)
 - *Optional:* MySQL / MariaDB (see [Database](#database-optional))
 - *Optional:* GCC 13+ with `libgit2-devel` (only for the C++ Git miner used by the MySQL step)
 
@@ -34,9 +34,9 @@ Tested on Fedora Linux and Ubuntu 24.04.
 
 ### For users: install the tool and run it on your own codebase
 ```bash
-pipx install "git+https://github.com/yyymaaa/cpp-risk-analyzer@v1.0.0"
+pipx install cpp-risk-analyzer      # recommended
 # or, inside a virtual environment:
-pip install "git+https://github.com/yyymaaa/cpp-risk-analyzer@v1.0.0"
+pip install cpp-risk-analyzer
 ```
 Then, from inside the C++ repository you are working on:
 ```bash
@@ -45,9 +45,19 @@ risk build .                     # once: learn this repository's history (a few 
 risk impact src/engine/core.h    # before changing a file
 risk init                        # optional: check every commit automatically
 ```
-`pipx` is recommended: it installs the tool in its own isolated environment, so its dependencies never conflict with your other Python packages.
+`pipx` is recommended: it installs the tool in its own isolated environment, so its dependencies never conflict with your other Python packages (install pipx with `sudo dnf install pipx`, `sudo apt install pipx`, `brew install pipx`, or `py -m pip install --user pipx` on Windows). `python -m cpp_risk_analyzer` works as an alternative to the `risk` command.
 
-**Where files are stored.** Models, datasets and caches go to `~/.local/share/cpp-risk-analyzer/` (or `$XDG_DATA_HOME/cpp-risk-analyzer`). Nothing is written into your repository except the optional pre-commit hook. Set `RISK_HOME=/some/folder` to store them elsewhere. When running from a source checkout (below), the project folder itself is used.
+To install a specific version straight from GitHub instead of PyPI: `pipx install "git+https://github.com/yyymaaa/cpp-risk-analyzer@v1.1.0"`.
+
+**Where files are stored.** Models, datasets and caches go to a per-user folder; nothing is written into your repository except the optional pre-commit hook:
+
+| OS | Folder |
+|---|---|
+| Linux | `~/.local/share/cpp-risk-analyzer/` (or `$XDG_DATA_HOME/cpp-risk-analyzer`) |
+| macOS | `~/Library/Application Support/cpp-risk-analyzer/` |
+| Windows | `%LOCALAPPDATA%\cpp-risk-analyzer\` |
+
+Set `RISK_HOME=/some/folder` to store them elsewhere. When running from a source checkout (below), the project folder itself is used.
 
 ### For development: from source
 ```bash
@@ -70,7 +80,7 @@ risk build /path/to/cpp-repo
 ```
 Extracts the structural metrics, mines Git history, builds the temporal dataset, trains the model and prints the evaluation tables. On RocksDB (14,000+ commits) this takes about 4 minutes on a 2-core machine. Models are stored **by folder name**, so a clone with a different folder name needs its own build.
 
-To train without the slower rolling evaluation: `python ml_pipeline/train_model.py /path/to/cpp-repo --no-rolling`
+To train without the slower rolling evaluation: `python -m cpp_risk_analyzer.ml_pipeline.train_model /path/to/cpp-repo --no-rolling`
 
 ### 2. Analyze the impact of changing one file
 ```bash
@@ -123,16 +133,17 @@ Mount the target repository under **its real folder name** (models are stored by
 
 ## Testing
 ```bash
-python -m pytest                 # all 42 tests (about 30 seconds)
+python -m pytest                 # all 45 tests (about 30 seconds)
 python -m pytest -m "not slow"   # unit tests only (a few seconds)
 ```
-The suite covers include parsing, path resolution, graph construction and metrics, co-change mining, leakage prevention (purging and baselines), evaluation metrics, impact-report tiers, storage paths, CLI path handling, and end-to-end runs of `build`, `impact` and `check` on a generated repository with four years of Git history. GitHub Actions runs it on every push and pull request (Python 3.10 and 3.12), and also checks that a normal `pip install` works outside the project folder. The full test record (test, requirement, expected result, actual result, corrective action) is in [`tests/TEST_RECORD.md`](tests/TEST_RECORD.md).
+The suite covers include parsing, path resolution, graph construction and metrics, co-change mining, leakage prevention (purging and baselines), evaluation metrics, impact-report tiers, storage paths, CLI path handling, and end-to-end runs of `build`, `impact` and `check` on a generated repository with four years of Git history. GitHub Actions runs it on every push and pull request on **Linux, macOS and Windows** (Python 3.12, plus 3.10 on Linux), and also checks on all three that a normal `pip install` works outside the project folder. The full test record (test, requirement, expected result, actual result, corrective action) is in [`tests/TEST_RECORD.md`](tests/TEST_RECORD.md).
 
 ## Releases
-Pushing a version tag publishes a GitHub Release with an installable wheel (see `.github/workflows/release.yml`):
+Pushing a version tag runs the tests, then publishes the release to **GitHub Releases** and **PyPI** (see `.github/workflows/release.yml`). The tag must match `version` in `pyproject.toml`:
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.1.0 && git push origin v1.1.0
 ```
+PyPI publishing uses [trusted publishing](https://docs.pypi.org/trusted-publishers/), so no password or token is stored in GitHub. One-time setup on pypi.org: *Your account → Publishing → Add a new pending publisher* with PyPI project name `cpp-risk-analyzer`, owner `yyymaaa`, repository `cpp-risk-analyzer`, workflow `release.yml`, environment `pypi`.
 
 ## Database (optional)
 `risk build` can also normalize the extracted metrics and commit log into MySQL/MariaDB for SQL analysis. **The ML pipeline and impact analysis do not need it**; if no database is reachable the step is skipped with a warning.
@@ -140,10 +151,10 @@ git tag v1.0.0 && git push origin v1.0.0
 To enable it:
 1. Start MySQL/MariaDB and create the database: `CREATE DATABASE cpp_risk_analyzer;`
 2. Copy `data/configuration/db_config.example.json` to `data/configuration/db_config.json` and set the `root` password. This file is gitignored; never commit it.
-3. Optional: compile the C++ Git miner, which produces the commit log loaded into MySQL: `bash git_mining/compile_miner.sh`
+3. Optional: compile the C++ Git miner, which produces the commit log loaded into MySQL: `bash cpp_risk_analyzer/git_mining/compile_miner.sh` (from a source checkout)
 
 ## Data Sources and Ethics
-The tool analyses **public open-source Git repositories** (evaluation used [google/leveldb](https://github.com/google/leveldb), [facebook/rocksdb](https://github.com/facebook/rocksdb), [abseil/abseil-cpp](https://github.com/abseil/abseil-cpp) and [catchorg/Catch2](https://github.com/catchorg/Catch2); licences: BSD-3-Clause, GPLv2 or Apache 2.0, Apache 2.0 and Boost 1.0 respectively). It reads only source code and commit metadata (file paths, timestamps, commit messages). No personal data is analysed; author names and emails are not used as features. Repositories are cloned locally and are not redistributed.
+The tool analyses **public open-source Git repositories** (evaluation used [google/leveldb](https://github.com/google/leveldb), [facebook/rocksdb](https://github.com/facebook/rocksdb), [abseil/abseil-cpp](https://github.com/abseil/abseil-cpp), [catchorg/Catch2](https://github.com/catchorg/Catch2) and [bitcoin/bitcoin](https://github.com/bitcoin/bitcoin); licences: BSD-3-Clause, GPLv2 or Apache 2.0, Apache 2.0, Boost 1.0 and MIT respectively). It reads only source code and commit metadata (file paths, timestamps, commit messages). No personal data is analysed; author names and emails are not used as features. Repositories are cloned locally and are not redistributed.
 
 Preparation steps (all automated by `risk build`):
 1. Scan C/C++ source and header files, excluding build output.
@@ -161,12 +172,13 @@ Outputs: `data/extraction_output/` (metrics, commit log), `data/ml_datasets/` (t
 
 **Metrics.** RMSE, MAE and R² measure how close the predicted blast radius is. Spearman correlation and NDCG@10% (computed within each snapshot) measure how well the model ranks files, which is how `risk impact` uses it.
 
-**Protocol.** The analyzer code was frozen (git tag `v1.0-eval`) before the final runs, and each repository was evaluated once at a pinned commit. Full results, environment, logs and error analyses are in [`results/SUMMARY.md`](results/SUMMARY.md).
+**Protocol.** The analyzer code was frozen before the final runs (it is identical to release `v1.0.0`), and each repository was evaluated once at a pinned commit. The v1.1.0 restructuring was verified to reproduce the same metrics (to within floating-point rounding). Full results, environment, logs and error analyses are in [`results/SUMMARY.md`](results/SUMMARY.md).
 
 **Results: Random Forest vs the weighted heuristic**
 
 | Repository | Commits | Test rows with activity | Held-out RMSE (RF / heuristic) | Rolling RMSE (RF / heuristic) | Held-out Spearman (RF / heuristic) | Rolling Spearman (RF / heuristic) |
 |---|---|---|---|---|---|---|
+| Bitcoin Core | 51,516 | 27.9% | **10.61** / 11.39 | **10.71** / 11.64 | **0.454** / 0.319 | **0.517** / 0.388 |
 | RocksDB | 14,213 | 20.6% | **12.40** / 14.98 | **13.68** / 15.79 | **0.463** / 0.328 | **0.465** / 0.325 |
 | Abseil | 3,990 | 21.1% | 8.76 / 8.75 | 7.19 / 7.17 | **0.222** / 0.182 | **0.245** / 0.193 |
 | Catch2 | 4,834 | 9.6% | **3.41** / 3.65 | 9.44 / **7.94** | **0.164** / 0.138 | **0.130** / 0.115 |
@@ -175,41 +187,41 @@ Outputs: `data/extraction_output/` (metrics, commit log), `data/ml_datasets/` (t
 ⚠ LevelDB's held-out period has almost no development activity, so its held-out numbers are not meaningful.
 
 **Interpretation.**
-- **Ranking (what the tool uses):** the Random Forest ranks files better than the weighted heuristic on all four repositories in both evaluations, and better than every baseline in 7 of 8 evaluations.
-- **Magnitude (RMSE):** the model is clearly more accurate only on RocksDB, the largest and most active repository (13–17% lower RMSE than the heuristic, R² 0.29–0.34). It ties the heuristic on Abseil. On the quieter Catch2 and LevelDB histories, simply predicting the training median gives a lower RMSE, because most files have a blast radius of 0.
+- **Ranking (what the tool uses):** the Random Forest ranks files better than the weighted heuristic on all five repositories in both evaluations, and better than every baseline in 9 of 10 evaluations.
+- **Magnitude (RMSE):** the model is clearly more accurate on the two largest, most active repositories: RocksDB (13–17% lower RMSE than the heuristic, R² 0.29–0.34) and Bitcoin Core (7–8% lower, R² 0.17–0.20), where it beats every baseline on every metric in both evaluations. It ties the heuristic on Abseil. On the quieter Catch2 and LevelDB histories, simply predicting the training median gives a lower RMSE, because most files have a blast radius of 0.
 - **Error analysis:** the model over-predicts files that end up not changing, and under-predicts the largest blast radii (on RocksDB, by about 24 files on average when the true value exceeds 20). It is therefore better used to *rank* files for review than to *estimate exact counts*. Historical co-change and commit activity are the most important features on RocksDB; structural features (PageRank, fan-out) matter more on Catch2.
 - **Implication:** the approach adds value on large, actively developed repositories. On small or quiet ones it should be treated as a ranking hint, which the report states through its "model trust" line.
 
 ## Repository Structure
 ```
 cpp-risk-analyzer/
-├── risk_cli.py                 # Main CLI (`risk`): build, impact, check, init, install-hooks
-├── risk                        # Legacy bash wrapper (build, impact)
-├── core/
-│   ├── main.py                 # Extraction pipeline: scan → graph → metrics → Git → MySQL (optional)
-│   ├── scanner.py              # C/C++ file discovery
-│   ├── parser.py               # #include extraction
-│   ├── resolver.py             # Resolves includes to repository files
-│   └── paths.py                # Where models, datasets and caches are stored
-├── graph/
-│   ├── graph_builder.py        # NetworkX dependency graph
-│   ├── analyzer.py             # PageRank, fan-in/out, betweenness
-│   ├── validator.py            # Graph sanity checks
-│   ├── historical_graph.py     # Rebuilds the graph at a past commit
-│   ├── cochange.py             # Git co-change index (cached per HEAD)
-│   ├── impact_analyzer.py      # Loads model + graph, runs impact analysis
-│   └── impact_report.py        # Risk scoring, tiers and terminal report
-├── ml_pipeline/
-│   ├── dataset_builder.py      # Temporal snapshots, features and labels
-│   └── train_model.py          # Training, baselines, held-out and rolling evaluation
-├── git_mining/                 # Git history export (Python + optional C++/libgit2 miner)
-├── database/db_loader.py       # Optional MySQL ingestion
-├── semantic/                   # Experimental Clang AST parser (not used by the main pipeline)
-├── tests/                      # pytest suite, test record and its generator
-├── results/                    # Frozen evaluation results, error analysis, environment
-├── .github/workflows/          # CI (tests on every push) and release workflow
-├── data/                       # Extraction outputs, datasets, cache, DB config example
-├── models/                     # Trained models and metrics (gitignored)
+├── cpp_risk_analyzer/              # The installable package
+│   ├── cli.py                      # `risk` command: build, impact, check, init, install-hooks
+│   ├── core/
+│   │   ├── main.py                 # Extraction pipeline: scan → graph → metrics → Git → MySQL (optional)
+│   │   ├── scanner.py              # C/C++ file discovery
+│   │   ├── parser.py               # #include extraction
+│   │   ├── resolver.py             # Resolves includes to repository files
+│   │   └── paths.py                # Where models, datasets and caches are stored (per OS)
+│   ├── graph/
+│   │   ├── graph_builder.py        # NetworkX dependency graph
+│   │   ├── analyzer.py             # PageRank, fan-in/out, betweenness
+│   │   ├── validator.py            # Graph sanity checks (counts, cycles)
+│   │   ├── historical_graph.py     # Rebuilds the graph at a past commit
+│   │   ├── cochange.py             # Git co-change index (cached per HEAD)
+│   │   ├── impact_analyzer.py      # Loads model + graph, runs impact analysis
+│   │   └── impact_report.py        # Risk scoring, tiers and terminal report
+│   ├── ml_pipeline/
+│   │   ├── dataset_builder.py      # Temporal snapshots, features and labels
+│   │   └── train_model.py          # Training, baselines, held-out and rolling evaluation
+│   ├── git_mining/                 # Git history export (Python + optional C++/libgit2 miner)
+│   ├── database/db_loader.py       # Optional MySQL ingestion
+│   └── semantic/                   # Experimental Clang AST parser (not used by the main pipeline)
+├── tests/                          # pytest suite, test record and its generator
+├── results/                        # Frozen evaluation results, error analysis, environment
+├── .github/workflows/              # CI (Linux/macOS/Windows) and release (GitHub + PyPI)
+├── data/                           # Source-checkout storage: extraction outputs, datasets, cache, DB config example
+├── risk                            # Legacy bash wrapper (build, impact)
 ├── dockerfile
 ├── requirements.txt
 └── pyproject.toml

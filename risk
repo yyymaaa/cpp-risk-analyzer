@@ -5,6 +5,9 @@
 # Run relative to this script's folder, so it works from any directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Make the cpp_risk_analyzer package importable without installing it
+export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+
 # Use the project's virtual environment if it exists, otherwise the system Python
 if [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
     PY="$SCRIPT_DIR/.venv/bin/python"
@@ -65,9 +68,9 @@ case "$COMMAND" in
         shift
 
         # Stop at the first failing step instead of training on missing data
-        "$PY" "$SCRIPT_DIR/core/main.py" "$REPO" "$@" || exit 1
-        "$PY" "$SCRIPT_DIR/ml_pipeline/dataset_builder.py" "$REPO" || exit 1
-        "$PY" "$SCRIPT_DIR/ml_pipeline/train_model.py" "$REPO" || exit 1
+        "$PY" -m cpp_risk_analyzer.core.main "$REPO" "$@" || exit 1
+        "$PY" -m cpp_risk_analyzer.ml_pipeline.dataset_builder "$REPO" || exit 1
+        "$PY" -m cpp_risk_analyzer.ml_pipeline.train_model "$REPO" || exit 1
         ;;
     impact)
         if [ -z "$1" ] || [ -z "$2" ]; then
@@ -75,7 +78,7 @@ case "$COMMAND" in
             echo "Usage: ./risk impact <file_path> <repo_path>"
             exit 1
         fi
-        "$PY" "$SCRIPT_DIR/graph/impact_analyzer.py" "$1" --repo "$2"
+        "$PY" -m cpp_risk_analyzer.graph.impact_analyzer "$1" --repo "$2"
         ;;
     *)
         echo -e "${BOLD}${PINK}Error: Unknown command '$COMMAND'.${RESET}"

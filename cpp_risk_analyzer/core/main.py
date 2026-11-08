@@ -9,18 +9,16 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.theme import Theme
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
-from core.scanner import scan_repository
-from core.parser import extract_includes
-from graph.graph_builder import build_dependency_graph
-from graph.validator import GraphValidator
-from graph.analyzer import StructuralAnalyzer
-from git_mining.git_analyzer import GitAnalyzer
-from database.db_loader import DatabaseLoader
+from cpp_risk_analyzer.core.scanner import scan_repository
+from cpp_risk_analyzer.core.parser import extract_includes
+from cpp_risk_analyzer.graph.graph_builder import build_dependency_graph
+from cpp_risk_analyzer.graph.validator import GraphValidator
+from cpp_risk_analyzer.graph.analyzer import StructuralAnalyzer
+from cpp_risk_analyzer.git_mining.git_analyzer import GitAnalyzer
+from cpp_risk_analyzer.database.db_loader import DatabaseLoader
 
 # Define Custom Pink & Purple Theme
 custom_theme = Theme({

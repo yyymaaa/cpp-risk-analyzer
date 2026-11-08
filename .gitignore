@@ -82,3 +82,6 @@ models/
 dist/
 .pytest_cache/
 test-results.xml
+
+
+SUMMARY.md

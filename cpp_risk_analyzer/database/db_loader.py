@@ -3,10 +3,8 @@ import sys
 import pymysql
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
 class DatabaseLoader:
     """Manages database schema initialization and ingestion of metrics, semantic dependencies, and Git logs into MySQL

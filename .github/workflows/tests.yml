@@ -7,11 +7,16 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Full test suite (unit + end-to-end) on every supported operating system
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.12"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"      # oldest supported version
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,17 +25,22 @@ jobs:
           cache: pip
       - name: Install
         run: pip install -e ".[test]"
-      - name: Run tests (unit + end-to-end) and save results
+      - name: Run tests and save results
         run: python -m pytest -v --junitxml=test-results.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-py${{ matrix.python-version }}
+          name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
           path: test-results.xml
 
   install:
-    # Checks the tool works the way users install it: a normal (non-editable) pip install, run from another folder.
-    runs-on: ubuntu-latest
+    # Checks the tool works the way users install it: a normal (non-editable) pip install,
+    # run from a different folder, on every operating system.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,7 +49,9 @@ jobs:
       - name: pip install (non-editable)
         run: pip install .
       - name: Run from outside the project folder
-        working-directory: /tmp
+        working-directory: ${{ runner.temp }}
+        shell: bash
         run: |
           risk --help
-          python -c "from core import paths; print('storage:', paths.storage_root())"
+          python -m cpp_risk_analyzer --help
+          python -c "from cpp_risk_analyzer.core import paths; print('storage:', paths.storage_root())"

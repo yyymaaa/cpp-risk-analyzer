@@ -18,7 +18,7 @@ class CoChangeIndex:
     def mine(cls, repo: Path, cache_dir: Path, since="2 years ago", max_files=40):
         git = ["git", "-C", str(repo)]
         head = subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True,
-                              text=True, check=True).stdout.strip()
+                              text=True, encoding="utf-8", errors="replace", check=True).stdout.strip()
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache = cache_dir / f"{repo.name}_{head[:10]}_cochange.pkl"
         if cache.exists():
@@ -27,7 +27,7 @@ class CoChangeIndex:
         out = subprocess.run(
             git + ["log", f"--since={since}", "--no-merges", "--name-only",
                    "--pretty=format:@@%H"],
-            capture_output=True, text=True, check=True).stdout
+            capture_output=True, text=True, encoding="utf-8", errors="replace", check=True).stdout
 
         commits, cur = [], None
         for line in out.splitlines():

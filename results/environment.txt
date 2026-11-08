@@ -1,5 +1,4 @@
-analyzer_tag: v1.0-eval
-analyzer_commit: 2c96f0fd342fc7ac99406edf9fcf21e50c59c0fa
+analyzer_code: identical to public release v1.0.0 (local freeze tag v1.0-eval)
 python: Python 3.13.18
 machine: 2 cores, 7 GB RAM, Linux 6.18.44-fc-v310
 packages:

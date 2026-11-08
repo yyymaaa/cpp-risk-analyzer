@@ -8,21 +8,19 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
 import joblib
 import networkx as nx
 import pandas as pd
 
-from graph.cochange import CoChangeIndex
-from graph.impact_report import compute_report, render
-from core.scanner import scan_repository
-from core.parser import extract_includes
-from graph.graph_builder import build_dependency_graph
-from graph.analyzer import StructuralAnalyzer
+from cpp_risk_analyzer.graph.cochange import CoChangeIndex
+from cpp_risk_analyzer.graph.impact_report import compute_report, render
+from cpp_risk_analyzer.core.scanner import scan_repository
+from cpp_risk_analyzer.core.parser import extract_includes
+from cpp_risk_analyzer.graph.graph_builder import build_dependency_graph
+from cpp_risk_analyzer.graph.analyzer import StructuralAnalyzer
 
 custom_theme = Theme({
     "info": "#b28dff",
@@ -88,7 +86,7 @@ class ChangeImpactAnalyzer:
         # BUG FIX: Unconditionally load the metrics JSON so it is available for fallback lookups
         metrics_file = paths.extraction_dir() / f"{repo_name}_structural_metrics.json"
         if metrics_file.exists():
-            with open(metrics_file, "r") as f:
+            with open(metrics_file, "r", encoding="utf-8") as f:
                 self.metrics = json.load(f)
         else:
             self.metrics = StructuralAnalyzer(self.graph).calculate_metrics()
@@ -107,7 +105,7 @@ class ChangeImpactAnalyzer:
         f = paths.models_dir() / f"{repo_name}_model_metrics.json"
         try:
             if f.exists():
-                return json.loads(f.read_text())
+                return json.loads(f.read_text(encoding="utf-8"))
             import numpy as np
             from sklearn.metrics import mean_squared_error, r2_score
             tr, te = self.df[self.df["split"] == "train"], self.df[self.df["split"] == "test"]

@@ -1,0 +1,61 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                              C++ RISK ANALYZER                               │
+│                  Structural Extraction & Ingestion Pipeline                  │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+✔ Found 1538 C++ source files.
+✔ Dependency graph built and validated.
+✔ Structural metrics exported.
+Note: Git miner not compiled ('/home/claude/frozen/git_mining/git_miner' missing), so the exported commit log (used only for MySQL ingestion) will be empty. The ML pipeline reads Git directly and is unaffected. To enable it: bash git_mining/compile_miner.sh
+✔ Raw Git commit log exported.
+Warning: /home/claude/evalhome/data/configuration/db_config.json not found. Attempting connection without password.
+⚠ MySQL ingestion skipped: could not connect (Can't connect to MySQL server on 
+'localhost' ([Errno 111] Connection refused)).
+  This step is optional; the remaining pipeline uses the exported JSON files. 
+See README → Database (optional).
+
+
+✔ Temporal Dataset Built Successfully
+  Git commits parsed: 18775
+  Temporal snapshots: 59
+  Dataset rows: 39140 (25005 train / 14135 test)
+  Mean train blast radius: 5.36
+  Mean test blast radius: 4.76
+                 Held-Out Evaluation (2023-11-21 → 2026-08-07)                  
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Predictor                    ┃   RMSE ┃   MAE ┃     R² ┃ Spearman ┃ NDCG@10% ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Random Forest ★              │ 10.608 │ 6.110 │  0.171 │    0.454 │    0.550 │
+│ Baseline: weighted heuristic │ 11.387 │ 7.239 │  0.045 │    0.319 │    0.230 │
+│ Baseline: train mean         │ 11.668 │ 7.562 │ -0.003 │   -0.002 │    0.117 │
+│ Baseline: train median       │ 12.589 │ 4.764 │ -0.167 │   -0.002 │    0.117 │
+│ Baseline: previous label     │ 13.961 │ 6.522 │ -0.435 │    0.263 │    0.418 │
+│ Baseline: past co-change     │ 11.042 │ 5.896 │  0.102 │    0.379 │    0.525 │
+│ count                        │        │       │        │          │          │
+└──────────────────────────────┴────────┴───────┴────────┴──────────┴──────────┘
+                       Rolling Evaluation (51 snapshots)                        
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃ Predictor                    ┃   RMSE ┃   MAE ┃     R² ┃ Spearman ┃ NDCG@10% ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Random Forest ★              │ 10.707 │ 6.123 │  0.198 │    0.517 │    0.605 │
+│ Baseline: weighted heuristic │ 11.641 │ 7.352 │  0.052 │    0.388 │    0.256 │
+│ Baseline: train mean         │ 11.968 │ 7.756 │ -0.002 │    0.004 │    0.144 │
+│ Baseline: train median       │ 13.007 │ 5.124 │ -0.184 │    0.004 │    0.144 │
+│ Baseline: previous label     │ 13.690 │ 6.505 │ -0.311 │    0.349 │    0.486 │
+│ Baseline: past co-change     │ 10.988 │ 5.939 │  0.155 │    0.474 │    0.584 │
+│ count                        │        │       │        │          │          │
+└──────────────────────────────┴────────┴───────┴────────┴──────────┴──────────┘
+Random Forest beats the strongest baseline (Baseline: past co-change count) on 
+held-out RMSE.
+             Top Risk Predictors             
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Feature                      ┃ Importance ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ historical_commit_count_365d │     0.2685 │
+│ fan_out                      │     0.2672 │
+│ pagerank                     │     0.1255 │
+└──────────────────────────────┴────────────┘
+
+✔ Saved trained model to: 
+/home/claude/evalhome/models/bitcoin_rf_regressor.joblib

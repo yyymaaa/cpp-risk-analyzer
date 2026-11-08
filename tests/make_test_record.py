@@ -74,6 +74,9 @@ def results(xml_path):
 
 def main(initial_xml, final_xml):
     docs, first, final = docstrings(), results(initial_xml), results(final_xml)
+    # Only count tests that still exist (renamed or replaced tests drop out of the record)
+    first = {k: v for k, v in first.items() if k in docs}
+    final = {k: v for k, v in final.items() if k in docs}
     n_fail_first = sum(v != "Pass" for v in first.values())
     n_pass_final = sum(v == "Pass" for v in final.values())
     print("# Test Record\n")
@@ -82,6 +85,8 @@ def main(initial_xml, final_xml):
     print(f"- Tests: **{len(final)}**  ·  initial run: **{len(first) - n_fail_first} passed, {n_fail_first} failed**"
           f"  ·  final run: **{n_pass_final} passed, {len(final) - n_pass_final} failed**")
     print("- Requirement IDs refer to Chapter 4 (FR = functional, NFR = non-functional requirement).")
+    print("- Final run recorded on Linux. GitHub Actions also runs the full suite on Windows and macOS on every push; "
+          "see the Actions tab for those runs.")
     print("- Run them yourself: `pip install -e \".[test]\"` then `python -m pytest` "
           "(add `-m \"not slow\"` to skip the end-to-end tests).\n")
     print("| ID | Module | Test | Requirement | Expected result | Initial result | Corrective action | Final result |")

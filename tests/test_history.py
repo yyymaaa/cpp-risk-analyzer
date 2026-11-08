@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from tests.conftest import commit, write
-from graph.cochange import CoChangeIndex
+from cpp_risk_analyzer.graph.cochange import CoChangeIndex
 
 
 def test_cochange_counts():

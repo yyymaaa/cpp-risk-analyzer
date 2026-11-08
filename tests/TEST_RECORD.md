@@ -2,8 +2,9 @@
 
 Generated 2026-11-08 by `tests/make_test_record.py` from two pytest runs (before and after corrective actions).
 
-- Tests: **42**  ·  initial run: **38 passed, 4 failed**  ·  final run: **42 passed, 0 failed**
+- Tests: **45**  ·  initial run: **41 passed, 4 failed**  ·  final run: **45 passed, 0 failed**
 - Requirement IDs refer to Chapter 4 (FR = functional, NFR = non-functional requirement).
+- Final run recorded on Linux. GitHub Actions also runs the full suite on Windows and macOS on every push; see the Actions tab for those runs.
 - Run them yourself: `pip install -e ".[test]"` then `python -m pytest` (add `-m "not slow"` to skip the end-to-end tests).
 
 | ID | Module | Test | Requirement | Expected result | Initial result | Corrective action | Final result |
@@ -40,13 +41,16 @@ Generated 2026-11-08 by `tests/make_test_record.py` from two pytest runs (before
 | T30 | report_cli | A dependent that historically changes with the target scores higher than an identical one that does not. | FR2, FR6 | util.h (co-changed in 5/5 commits) scores above api.h (never co-changed), both 1 hop away | Pass | None needed | Pass |
 | T31 | report_cli | Impact analysis finds every file that directly or transitively includes the target. | FR6 | changing core.h reaches 6 files; engine.cc is 2 hops away via util.h | Pass | None needed | Pass |
 | T32 | report_cli | Product code goes to REVIEW/WATCH, tests to RUN, tooling never to REVIEW. | FR6 (maps downstream files to testing actions) | tests/core_test.cc tier RUN; tools/cli.cc not REVIEW; at least one product file in REVIEW | Pass | None needed | Pass |
-| T33 | report_cli | RISK_HOME overrides where models and data are stored. | Deployment (pip install works outside the project folder) | models_dir() and datasets_dir() are inside RISK_HOME | Pass | None needed | Pass |
-| T34 | report_cli | When installed (no source checkout) data goes to the per-user data folder. | Deployment | storage_root() == $XDG_DATA_HOME/cpp-risk-analyzer | Pass | None needed | Pass |
-| T35 | report_cli | The report states measured accuracy, the best baseline and low-activity warnings. | FR6, honest uncertainty (Sprint III) | text contains R², both baseline errors and the warning | Pass | None needed | Pass |
-| T36 | report_cli | A file nothing depends on has an empty impact set and the lowest grade. | FR6 | engine.cc reaches 0 files; grade LOW | Pass | None needed | Pass |
-| T37 | scanner_resolver | An include written relative to include/ resolves to the repository file. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
-| T38 | scanner_resolver | A quoted include that does not exist is reported as unresolved. | FR1 | status "unresolved", no target | Pass | None needed | Pass |
-| T39 | scanner_resolver | An include relative to the including file's folder resolves. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
-| T40 | scanner_resolver | A standard-library header is classified as external, not a repository dependency. | FR1 | status "external", no target | Pass | None needed | Pass |
-| T41 | scanner_resolver | Scanner returns C/C++ sources and headers, sorted, and nothing else. | FR1 | exactly the 7 .h/.cc files of the fixture; README.md and CMakeLists.txt excluded | Pass | None needed | Pass |
-| T42 | scanner_resolver | Vendored and build directories are excluded from analysis. | FR1, data preparation | files under third-party/ and build/ are not returned | Pass | None needed | Pass |
+| T33 | report_cli | The pre-commit hook is a POSIX sh script that Git can run on Linux, macOS and Windows (Git Bash). | Interface 1, Windows support | hook starts with #!/bin/sh, calls `check --gate`, has LF line endings and no backslashes in paths | Pass | None needed | Pass |
+| T34 | report_cli | RISK_HOME overrides where models and data are stored. | Deployment (pip install works outside the project folder) | models_dir() and datasets_dir() are inside RISK_HOME | Pass | None needed | Pass |
+| T35 | report_cli | On Linux, an installed tool stores data in the XDG data folder. | Deployment (pip install works outside the project folder) | storage_root() == $XDG_DATA_HOME/cpp-risk-analyzer | Pass | None needed | Pass |
+| T36 | report_cli | On macOS, an installed tool stores data in ~/Library/Application Support. | Deployment, macOS support | storage_root() == ~/Library/Application Support/cpp-risk-analyzer | Pass | None needed | Pass |
+| T37 | report_cli | On Windows, an installed tool stores data in %LOCALAPPDATA%. | Deployment, Windows support | storage_root() == %LOCALAPPDATA%/cpp-risk-analyzer | Pass | None needed | Pass |
+| T38 | report_cli | The report states measured accuracy, the best baseline and low-activity warnings. | FR6, honest uncertainty (Sprint III) | text contains R², both baseline errors and the warning | Pass | None needed | Pass |
+| T39 | report_cli | A file nothing depends on has an empty impact set and the lowest grade. | FR6 | engine.cc reaches 0 files; grade LOW | Pass | None needed | Pass |
+| T40 | scanner_resolver | An include written relative to include/ resolves to the repository file. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
+| T41 | scanner_resolver | A quoted include that does not exist is reported as unresolved. | FR1 | status "unresolved", no target | Pass | None needed | Pass |
+| T42 | scanner_resolver | An include relative to the including file's folder resolves. | FR1 | status "internal", target include/lib/core.h | Pass | None needed | Pass |
+| T43 | scanner_resolver | A standard-library header is classified as external, not a repository dependency. | FR1 | status "external", no target | Pass | None needed | Pass |
+| T44 | scanner_resolver | Scanner returns C/C++ sources and headers, sorted, and nothing else. | FR1 | exactly the 7 .h/.cc files of the fixture; README.md and CMakeLists.txt excluded | Pass | None needed | Pass |
+| T45 | scanner_resolver | Vendored and build directories are excluded from analysis. | FR1, data preparation | files under third-party/ and build/ are not returned | Pass | None needed | Pass |

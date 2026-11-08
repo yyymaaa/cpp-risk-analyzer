@@ -15,11 +15,12 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from core import paths                                   # noqa: E402
-from graph.impact_report import classify                 # noqa: E402
-from ml_pipeline.train_model import FEATURES, TARGET     # noqa: E402
+from cpp_risk_analyzer.core import paths                                   # noqa: E402
+from cpp_risk_analyzer.graph.impact_report import classify                 # noqa: E402
+from cpp_risk_analyzer.ml_pipeline.train_model import FEATURES, TARGET     # noqa: E402
 
 RESULTS = ROOT / "results"
+NOTE = ('All runs use the frozen analyzer code, identical to the public release **v1.0.0** (git tag `v1.0.0`); the model and all baselines were fixed before any of these results were produced, and each repository was run once. Reproduce with `RISK_HOME=... risk build <repo>` at the commits listed.\n\n**Reproducibility check (v1.1.0):** after the v1.1.0 packaging and cross-platform changes, LevelDB, Catch2 and Abseil were rebuilt with the final v1.1.0 code; every metric matched the frozen runs (identical, apart from floating-point rounding below 1e-12 caused by parallel tree training).\n')
 SHOW = ["Random Forest", "Baseline: weighted heuristic", "Baseline: past co-change count",
         "Baseline: previous label", "Baseline: train mean", "Baseline: train median"]
 COLS = [("rmse", "RMSE"), ("mae", "MAE"), ("r2", "R²"), ("spearman", "Spearman"), ("ndcg10", "NDCG@10%")]
@@ -90,8 +91,7 @@ for files with no co-change at all, it predicted {zero_over:.2f} on average.
 def main(repos):
     env = (RESULTS / "environment.txt").read_text()
     out = ["# Evaluation results\n",
-           "All runs use the frozen analyzer code (git tag `v1.0-eval`); model and baselines were fixed before "
-           "any of these results were produced. Reproduce with `RISK_HOME=... risk build <repo>` at the commits listed.\n",
+           NOTE,
            "```", env.strip(), "```\n", "## Repositories\n",
            "| Repository | Commit | Commit date | Total commits | Snapshots | Test period | Test rows with activity | Build time |",
            "|---|---|---|---|---|---|---|---|"]

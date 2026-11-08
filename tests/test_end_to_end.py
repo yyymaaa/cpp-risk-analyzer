@@ -9,13 +9,14 @@ import pytest
 
 from tests.conftest import PROJECT_ROOT, make_history_repo
 
-CLI = [sys.executable, str(PROJECT_ROOT / "risk_cli.py")]
+CLI = [sys.executable, "-m", "cpp_risk_analyzer"]
 
 
 def _run(args, cwd, home, **kw):
-    env = {**os.environ, "RISK_HOME": str(home), "COLUMNS": "120"}
-    return subprocess.run(CLI + args, cwd=cwd, env=env, capture_output=True, text=True,
-                          stdin=subprocess.DEVNULL, timeout=900, **kw)
+    env = {**os.environ, "RISK_HOME": str(home), "COLUMNS": "120",
+           "PYTHONPATH": str(PROJECT_ROOT) + os.pathsep + os.environ.get("PYTHONPATH", "")}
+    return subprocess.run(CLI + args, cwd=cwd, env=env, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", stdin=subprocess.DEVNULL, timeout=900, **kw)
 
 
 @pytest.fixture(scope="module")

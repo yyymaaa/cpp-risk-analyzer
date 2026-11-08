@@ -5,16 +5,21 @@ Resolution order for the storage root:
   2. The project folder, when running from a source checkout (a folder containing
      pyproject.toml, e.g. after `git clone` + `pip install -e .`). This keeps the
      developer workflow and the committed evaluation data exactly where they were.
-  3. Otherwise (a normal `pip install` / `pipx install`): the per-user data folder,
-     $XDG_DATA_HOME/cpp-risk-analyzer or ~/.local/share/cpp-risk-analyzer.
+  3. Otherwise (a normal `pip install` / `pipx install`), the per-user data folder:
+       Linux:   $XDG_DATA_HOME/cpp-risk-analyzer, or ~/.local/share/cpp-risk-analyzer
+       macOS:   ~/Library/Application Support/cpp-risk-analyzer
+       Windows: %LOCALAPPDATA%\\cpp-risk-analyzer
 
 Inside the root:  data/extraction_output, data/ml_datasets, data/cache,
                   data/configuration/db_config.json, models/
 """
 import os
+import sys
 from pathlib import Path
 
-PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+# Folder that contains the cpp_risk_analyzer package: the repository root in a source checkout,
+# site-packages when installed.
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def storage_root() -> Path:
@@ -23,7 +28,12 @@ def storage_root() -> Path:
         return Path(env).expanduser().resolve()
     if (PACKAGE_ROOT / "pyproject.toml").exists():
         return PACKAGE_ROOT
-    base = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
     return Path(base).expanduser() / "cpp-risk-analyzer"
 
 

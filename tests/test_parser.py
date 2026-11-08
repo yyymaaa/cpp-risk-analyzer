@@ -1,4 +1,4 @@
-from core.parser import extract_includes
+from cpp_risk_analyzer.core.parser import extract_includes
 
 
 def _parse(tmp_path, text):

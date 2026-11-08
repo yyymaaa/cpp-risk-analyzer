@@ -1,8 +1,8 @@
-from core.parser import IncludeDirective, extract_includes
-from core.scanner import scan_repository
-from graph.analyzer import StructuralAnalyzer
-from graph.graph_builder import build_dependency_graph
-from graph.validator import GraphValidator
+from cpp_risk_analyzer.core.parser import IncludeDirective, extract_includes
+from cpp_risk_analyzer.core.scanner import scan_repository
+from cpp_risk_analyzer.graph.analyzer import StructuralAnalyzer
+from cpp_risk_analyzer.graph.graph_builder import build_dependency_graph
+from cpp_risk_analyzer.graph.validator import GraphValidator
 
 
 def _graph(repo):

@@ -1,8 +1,8 @@
 from pathlib import Path
 import networkx as nx
 
-from core.parser import IncludeDirective
-from core.resolver import resolve_include
+from cpp_risk_analyzer.core.parser import IncludeDirective
+from cpp_risk_analyzer.core.resolver import resolve_include
 
 def build_dependency_graph(
     repository: Path,
@@ -19,6 +19,7 @@ def build_dependency_graph(
     Returns:
         nx.DiGraph: A networkX directed graph populated with nodes and dependency edges
     """    
+    repository = Path(repository).resolve()   # compare like with like (resolved targets below)
     graph = nx.DiGraph()
     for file in files:
         relative_path = file.relative_to(repository).as_posix()

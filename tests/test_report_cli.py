@@ -3,15 +3,15 @@ from types import SimpleNamespace
 import pytest
 import typer
 
-from core import paths
-from graph.cochange import CoChangeIndex
-from graph.impact_report import classify, compute_report, trust_line
+from cpp_risk_analyzer.core import paths
+from cpp_risk_analyzer.graph.cochange import CoChangeIndex
+from cpp_risk_analyzer.graph.impact_report import classify, compute_report, trust_line
 from tests.test_graph import _graph
 
 
 def _fallback_analyzer(repo, commits=()):
     """Analyzer stand-in without a model (structural fallback mode)."""
-    from graph.analyzer import StructuralAnalyzer
+    from cpp_risk_analyzer.graph.analyzer import StructuralAnalyzer
     g = _graph(repo)
     return SimpleNamespace(graph=g, cochange=CoChangeIndex(list(commits)), has_model=False,
                            metrics=StructuralAnalyzer(g).calculate_metrics(), trust=None)
@@ -90,15 +90,41 @@ def test_paths_risk_home(risk_home):
     assert paths.datasets_dir() == risk_home / "data" / "ml_datasets"
 
 
-def test_paths_user_data_dir_when_installed(monkeypatch, tmp_path):
-    """When installed (no source checkout) data goes to the per-user data folder.
-    Req: Deployment
+def _installed(monkeypatch, tmp_path, platform):
+    """Simulate a normal pip install (no source checkout) on the given platform."""
+    monkeypatch.delenv("RISK_HOME", raising=False)
+    monkeypatch.setattr(paths, "PACKAGE_ROOT", tmp_path / "site-packages")
+    monkeypatch.setattr(paths.sys, "platform", platform)
+
+
+def test_paths_user_data_dir_linux(monkeypatch, tmp_path):
+    """On Linux, an installed tool stores data in the XDG data folder.
+    Req: Deployment (pip install works outside the project folder)
     Expected: storage_root() == $XDG_DATA_HOME/cpp-risk-analyzer
     """
-    monkeypatch.delenv("RISK_HOME", raising=False)
+    _installed(monkeypatch, tmp_path, "linux")
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
-    monkeypatch.setattr(paths, "PACKAGE_ROOT", tmp_path / "site-packages")
     assert paths.storage_root() == tmp_path / "xdg" / "cpp-risk-analyzer"
+
+
+def test_paths_user_data_dir_windows(monkeypatch, tmp_path):
+    """On Windows, an installed tool stores data in %LOCALAPPDATA%.
+    Req: Deployment, Windows support
+    Expected: storage_root() == %LOCALAPPDATA%/cpp-risk-analyzer
+    """
+    _installed(monkeypatch, tmp_path, "win32")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "AppData" / "Local"))
+    assert paths.storage_root() == tmp_path / "AppData" / "Local" / "cpp-risk-analyzer"
+
+
+def test_paths_user_data_dir_macos(monkeypatch, tmp_path):
+    """On macOS, an installed tool stores data in ~/Library/Application Support.
+    Req: Deployment, macOS support
+    Expected: storage_root() == ~/Library/Application Support/cpp-risk-analyzer
+    """
+    _installed(monkeypatch, tmp_path, "darwin")
+    monkeypatch.setattr(paths.Path, "home", lambda: tmp_path / "home")
+    assert paths.storage_root() == tmp_path / "home" / "Library" / "Application Support" / "cpp-risk-analyzer"
 
 
 def test_cli_path_forms(tiny_repo, monkeypatch):
@@ -106,7 +132,7 @@ def test_cli_path_forms(tiny_repo, monkeypatch):
     Req: Interface 1 (CLI usable from the developer's own codebase)
     Expected: all three forms -> "include/lib/core.h"; "nope.h" -> clear error
     """
-    from risk_cli import _rel
+    from cpp_risk_analyzer.cli import _rel
     repo = tiny_repo.resolve()
     monkeypatch.chdir(repo / "include")
     assert _rel(repo, "lib/core.h") == "include/lib/core.h"            # relative to cwd
@@ -114,3 +140,17 @@ def test_cli_path_forms(tiny_repo, monkeypatch):
     assert _rel(repo, str(repo / "include/lib/core.h")) == "include/lib/core.h"
     with pytest.raises(typer.BadParameter):
         _rel(repo, "nope.h")
+
+
+def test_installed_hook_is_portable(tiny_repo):
+    """The pre-commit hook is a POSIX sh script that Git can run on Linux, macOS and Windows (Git Bash).
+    Req: Interface 1, Windows support
+    Expected: hook starts with #!/bin/sh, calls `check --gate`, has LF line endings and no backslashes in paths
+    """
+    from typer.testing import CliRunner
+    from cpp_risk_analyzer.cli import app
+    result = CliRunner().invoke(app, ["install-hooks", "--repo", str(tiny_repo)])
+    assert result.exit_code == 0, result.output
+    hook = (tiny_repo / ".git" / "hooks" / "pre-commit").read_bytes()
+    assert hook.startswith(b"#!/bin/sh\n")
+    assert b"check --gate" in hook and b"\r\n" not in hook and b"\\" not in hook

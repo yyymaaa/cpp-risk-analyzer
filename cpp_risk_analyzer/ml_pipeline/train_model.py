@@ -3,10 +3,8 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
 import joblib
 import numpy as np
@@ -17,7 +15,7 @@ from scipy.stats import spearmanr
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, ndcg_score
 
-from ml_pipeline.dataset_builder import HORIZON_DAYS
+from cpp_risk_analyzer.ml_pipeline.dataset_builder import HORIZON_DAYS
 
 
 
@@ -248,7 +246,7 @@ def train(repo_path: Path | str, rolling: bool = True):
     }
 
     MODEL_DIR = paths.models_dir()
-    (MODEL_DIR / f"{repo_name}_model_metrics.json").write_text(json.dumps(trust, indent=2))
+    (MODEL_DIR / f"{repo_name}_model_metrics.json").write_text(json.dumps(trust, indent=2), encoding="utf-8")
 
     console.print(metrics_table(f"Held-Out Evaluation ({trust['test_from']} → {trust['test_to']})", held_out))
     if rolling_results:

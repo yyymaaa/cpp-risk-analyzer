@@ -4,11 +4,8 @@ import sys
 from pathlib import Path
 from typing import Dict, List
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
 class GitAnalyzer:
     def __init__(self, repository: Path | str, miner_executable: Path | str | None = None):
@@ -18,7 +15,7 @@ class GitAnalyzer:
         if miner_executable:
             self.miner_executable = Path(miner_executable)
         else:
-            self.miner_executable = PROJECT_ROOT / "git_mining" / "git_miner"
+            self.miner_executable = Path(__file__).resolve().parent / "git_miner"
 
         # Default repository-specific output path
         self.default_output = (
@@ -30,13 +27,13 @@ class GitAnalyzer:
         if not self.miner_executable.exists():
             print(f"Note: Git miner not compiled ('{self.miner_executable}' missing), so the exported "
                   "commit log (used only for MySQL ingestion) will be empty. The ML pipeline reads Git "
-                  "directly and is unaffected. To enable it: bash git_mining/compile_miner.sh")
+                  "directly and is unaffected. To enable it: bash cpp_risk_analyzer/git_mining/compile_miner.sh")
             return []
 
         result = subprocess.run(
             [str(self.miner_executable), str(self.repository)],
             capture_output=True,
-            text=True
+            text=True, encoding="utf-8", errors="replace"
         )
 
         if result.returncode == 0:

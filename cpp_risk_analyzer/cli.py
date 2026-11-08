@@ -9,11 +9,8 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 console = Console()
 app = typer.Typer(add_completion=False, no_args_is_help=True,
                   help="[bold #ff70a6]RISK[/] — C++ change-impact analyzer")
@@ -23,17 +20,21 @@ GRADES = ["LOW", "MODERATE", "HIGH", "CRITICAL"]
 BLOCK_EXIT = 3 
 
 def _git_config(repo: Path, key: str):
-    r = subprocess.run(["git", "-C", str(repo), "config", "--get", key], capture_output=True, text=True)
+    r = subprocess.run(["git", "-C", str(repo), "config", "--get", key], capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout.strip() or None
+
+
+# The terminal the user is typing in, even when stdin/stdout are redirected (as inside a git hook)
+TTY_IN, TTY_OUT = ("CONIN$", "CONOUT$") if os.name == "nt" else ("/dev/tty", "/dev/tty")
 
 
 def _ask_commit_anyway():
     """True = y, False = n/Enter, None = no terminal available."""
     try:
-        with open("/dev/tty", "w") as out:
+        with open(TTY_OUT, "w", encoding="utf-8") as out:
             out.write("\nCommit anyway? [y/N] ")
             out.flush()
-        with open("/dev/tty", "r") as inp:
+        with open(TTY_IN, "r", encoding="utf-8") as inp:
             return inp.readline().strip().lower() in ("y", "yes")
     except OSError as e:
         console.print(f"\n[dim]No terminal to ask on ({e}). Commit allowed.[/]")
@@ -41,7 +42,7 @@ def _ask_commit_anyway():
 
 
 def _print_findings(reports):
-    from graph.impact_report import GRADE_COLOR
+    from cpp_risk_analyzer.graph.impact_report import GRADE_COLOR
     reports = sorted(reports, key=lambda r: GRADES.index(r.grade), reverse=True)
     for r in reports:
         c = GRADE_COLOR[r.grade]
@@ -72,33 +73,32 @@ def _print_findings(reports):
 def find_repo(repo: Optional[Path]) -> Path:
     if repo:
         return repo.resolve()
-    r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode:
         raise typer.BadParameter("Not inside a git repo. Pass --repo.")
-    return Path(r.stdout.strip())
+    return Path(r.stdout.strip()).resolve()   # normalise (e.g. Windows short names like RUNNER~1)
 
 
 def has_model(repo: Path) -> bool:
     return (paths.models_dir() / f"{repo.name}_rf_regressor.joblib").exists()
 
 
-def run(script: str, *args):
-    subprocess.run([sys.executable, str(ROOT / script), *map(str, args)], check=True)
+def run(module: str, *args):
+    subprocess.run([sys.executable, "-m", module, *map(str, args)], check=True)
 
 
 @app.command()
 def build(repo: Optional[Path] = typer.Argument(None), verbose: bool = typer.Option(False, "-v")):
     """Extract metrics, build dataset, train model."""
     repo = find_repo(repo)
-    run("core/main.py", repo, *(["-v"] if verbose else []))
-    run("ml_pipeline/dataset_builder.py", repo)
-    run("ml_pipeline/train_model.py", repo)
+    run("cpp_risk_analyzer.core.main", repo, *(["-v"] if verbose else []))
+    run("cpp_risk_analyzer.ml_pipeline.dataset_builder", repo)
+    run("cpp_risk_analyzer.ml_pipeline.train_model", repo)
     console.print(f"[dim]Models and data for '{repo.name}' are stored in {paths.storage_root()} "
                   f"(set RISK_HOME to change this).[/]")
 
 
 def _analyzer(repo: Path):
-    sys.path.insert(0, str(ROOT))
     if not has_model(repo):
         # Never wait for an answer that can't come (scripts, CI, piped input): say what to do instead.
         if not sys.stdin.isatty():
@@ -107,7 +107,7 @@ def _analyzer(repo: Path):
             raise typer.Exit(1)
         if typer.confirm(f"No model for '{repo.name}'. Build one now?", default=True):
             build(repo, False)
-    from graph.impact_analyzer import ChangeImpactAnalyzer
+    from cpp_risk_analyzer.graph.impact_analyzer import ChangeImpactAnalyzer
     return ChangeImpactAnalyzer(repo)
 
 
@@ -133,9 +133,9 @@ def impact(file: str,
 
 
 def _check(staged: bool, gate: bool, fail_on, repo: Path):
-    from graph.impact_report import compute_report
+    from cpp_risk_analyzer.graph.impact_report import compute_report
     diff = ["git", "-C", str(repo), "diff", "--name-only"] + (["--cached"] if staged else ["HEAD"])
-    files = [f for f in subprocess.run(diff, capture_output=True, text=True).stdout.split()
+    files = [f for f in subprocess.run(diff, capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.split()
              if f.endswith((".h", ".hpp", ".cc", ".cpp", ".cxx", ".c"))]
     if not files:
         if not gate:
@@ -202,16 +202,17 @@ def install_hooks(repo: Optional[Path] = typer.Option(None, "--repo", "-r")):
     """Check every commit automatically (asks before risky ones)."""
     repo = find_repo(repo)
     rel = subprocess.run(["git", "-C", str(repo), "rev-parse", "--git-path", "hooks/pre-commit"],
-                         capture_output=True, text=True, check=True).stdout.strip()
+                         capture_output=True, text=True, encoding="utf-8", errors="replace", check=True).stdout.strip()
     hook = repo / rel
     hook.parent.mkdir(parents=True, exist_ok=True)
-    if hook.exists() and HOOK_MARK not in hook.read_text():
+    if hook.exists() and HOOK_MARK not in hook.read_text(encoding="utf-8", errors="replace"):
         hook.rename(hook.with_name("pre-commit.backup"))
         console.print("[dim]Existing pre-commit hook saved as pre-commit.backup[/]")
+    # Git runs hooks with sh (Git Bash on Windows), so use forward slashes in paths
     exe = shutil.which("risk")
-    cmd = f'"{exe}"' if exe else f'"{sys.executable}" "{ROOT / "risk_cli.py"}"'
+    cmd = f'"{Path(exe).as_posix()}"' if exe else f'"{Path(sys.executable).as_posix()}" -m cpp_risk_analyzer'
     hook.write_text(f'#!/bin/sh\n{HOOK_MARK}\n{cmd} check --gate\nrc=$?\n'
-                    f'[ "$rc" -eq {BLOCK_EXIT} ] && exit 1\nexit 0\n')
+                    f'[ "$rc" -eq {BLOCK_EXIT} ] && exit 1\nexit 0\n', encoding="utf-8", newline="\n")
     hook.chmod(0o755)
     console.print(f"[bold #ff70a6]Installed.[/] Commits in {repo.name} are now checked automatically.")
 

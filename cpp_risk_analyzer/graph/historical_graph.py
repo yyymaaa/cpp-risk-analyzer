@@ -8,8 +8,8 @@ from pathlib import Path
 
 import networkx as nx
 
-from core.scanner import scan_repository
-from core.parser import extract_includes
+from cpp_risk_analyzer.core.scanner import scan_repository
+from cpp_risk_analyzer.core.parser import extract_includes
 from .graph_builder import build_dependency_graph
 from .analyzer import StructuralAnalyzer
 
@@ -27,7 +27,7 @@ def git_output(repo: Path, *args: str) -> str:
         ["git", *args],
         cwd=repo,
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=True,
     )
     return result.stdout
@@ -73,7 +73,7 @@ def historical_graph(
     with tempfile.TemporaryDirectory(
         prefix="cpp-risk-history-"
     ) as tmp:
-        snapshot = Path(tmp)
+        snapshot = Path(tmp).resolve()   # macOS: /var is a symlink to /private/var
 
         archive = subprocess.run(
             ["git", "archive", commit],

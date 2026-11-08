@@ -1,10 +1,11 @@
 # Evaluation results
 
-All runs use the frozen analyzer code (git tag `v1.0-eval`); model and baselines were fixed before any of these results were produced. Reproduce with `RISK_HOME=... risk build <repo>` at the commits listed.
+All runs use the frozen analyzer code, identical to the public release **v1.0.0** (git tag `v1.0.0`); the model and all baselines were fixed before any of these results were produced, and each repository was run once. Reproduce with `RISK_HOME=... risk build <repo>` at the commits listed.
+
+**Reproducibility check (v1.1.0):** after the v1.1.0 packaging and cross-platform changes, LevelDB, Catch2 and Abseil were rebuilt with the final v1.1.0 code; every metric matched the frozen runs (identical, apart from floating-point rounding below 1e-12 caused by parallel tree training).
 
 ```
-analyzer_tag: v1.0-eval
-analyzer_commit: 2c96f0fd342fc7ac99406edf9fcf21e50c59c0fa
+analyzer_code: identical to public release v1.0.0 (local freeze tag v1.0-eval)
 python: Python 3.13.18
 machine: 2 cores, 7 GB RAM, Linux 6.18.44-fc-v310
 packages:
@@ -24,6 +25,7 @@ packages:
 | Catch2 | `a1a991fee5` | 2026-10-09 | 4834 | 33 | 2024-11-15 → 2026-05-09 | 257 of 2680 (9.6%) | 0 min 30 s |
 | abseil-cpp | `28d518b05d` | 2026-11-07 | 3990 | 33 | 2025-02-14 → 2026-08-08 | 1252 of 5927 (21.1%) | 1 min 26 s |
 | rocksdb | `553b52b4a7` | 2026-10-21 | 14213 | 59 | 2023-10-16 → 2026-07-02 | 3186 of 15497 (20.6%) | 4 min 2 s |
+| bitcoin | `4ef7904c39` | 2026-11-08 | 51516 | 59 | 2023-11-21 → 2026-08-07 | 3949 of 14135 (27.9%) | 4 min 40 s |
 
 ## Does the Random Forest beat the strongest baseline?
 
@@ -37,6 +39,8 @@ packages:
 | abseil-cpp | rolling | 7.19 | weighted heuristic (7.17) | 0.245 | 0.219 | Spearman, NDCG@10% |
 | rocksdb | held-out | 12.40 | past co-change count (12.75) | 0.463 | 0.423 | RMSE, R², Spearman, NDCG@10% |
 | rocksdb | rolling | 13.68 | past co-change count (14.06) | 0.465 | 0.422 | RMSE, R², Spearman, NDCG@10% |
+| bitcoin | held-out | 10.61 | past co-change count (11.04) | 0.454 | 0.379 | RMSE, R², Spearman, NDCG@10% |
+| bitcoin | rolling | 10.71 | past co-change count (10.99) | 0.517 | 0.474 | RMSE, R², Spearman, NDCG@10% |
 
 ## leveldb
 
@@ -135,4 +139,28 @@ Error analysis: [`abseil-cpp/error_analysis.md`](abseil-cpp/error_analysis.md)
 | train median | 17.673 | **7.041** | -0.180 | -0.003 | 0.144 |
 
 Error analysis: [`rocksdb/error_analysis.md`](rocksdb/error_analysis.md)
+
+## bitcoin
+
+### Held-out test period (2023-11-21 → 2026-08-07)
+| Predictor | RMSE | MAE | R² | Spearman | NDCG@10% |
+|---|---|---|---|---|---|
+| Random Forest | **10.608** | 6.110 | **0.171** | **0.454** | **0.550** |
+| weighted heuristic | 11.387 | 7.239 | 0.045 | 0.319 | 0.230 |
+| past co-change count | 11.042 | 5.896 | 0.102 | 0.379 | 0.525 |
+| previous label | 13.961 | 6.522 | -0.435 | 0.263 | 0.418 |
+| train mean | 11.668 | 7.562 | -0.003 | -0.002 | 0.117 |
+| train median | 12.589 | **4.764** | -0.167 | -0.002 | 0.117 |
+
+### Rolling-origin evaluation (51 test snapshots)
+| Predictor | RMSE | MAE | R² | Spearman | NDCG@10% |
+|---|---|---|---|---|---|
+| Random Forest | **10.707** | 6.123 | **0.198** | **0.517** | **0.605** |
+| weighted heuristic | 11.641 | 7.352 | 0.052 | 0.388 | 0.256 |
+| past co-change count | 10.988 | 5.939 | 0.155 | 0.474 | 0.584 |
+| previous label | 13.690 | 6.505 | -0.311 | 0.349 | 0.486 |
+| train mean | 11.968 | 7.756 | -0.002 | 0.004 | 0.144 |
+| train median | 13.007 | **5.124** | -0.184 | 0.004 | 0.144 |
+
+Error analysis: [`bitcoin/error_analysis.md`](bitcoin/error_analysis.md)
 

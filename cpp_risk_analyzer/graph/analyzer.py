@@ -4,10 +4,8 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import paths
+from cpp_risk_analyzer.core import paths
 
 class StructuralAnalyzer:
     """Calculates network structural metrics (Fan-in, Fan-out, PageRank, Betweeness)
