@@ -34,7 +34,8 @@ def build_dependency_graph(
                 repository,
             )
 
-            if result.status == "internal":
+            # Absolute includes (e.g. "/usr/include/...") can resolve outside the repo; skip them.
+            if result.status == "internal" and result.target.is_relative_to(repository.resolve()):
                 target = result.target.relative_to(repository).as_posix()
 
                 graph.add_edge(

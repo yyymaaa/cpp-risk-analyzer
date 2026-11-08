@@ -1,0 +1,46 @@
+[
+    {
+        "id": "88e0290eff6ebe79beb5c30aa106169646417867",
+        "author": "Amy Ojuka",
+        "timestamp": 1792404559,
+        "files": [
+            "git_mining/git_miner.cpp",
+            "semantic/semantic_parser.cpp",
+            "src/git_miner.cpp",
+            "src/semantic_parser.cpp"
+        ]
+    },
+    {
+        "id": "760e2070b72cfc0767367d06573955d6dd7b3c72",
+        "author": "Amy Ojuka",
+        "timestamp": 1791551576,
+        "files": [
+            "src/git_miner.cpp",
+            "src/semantic_parser.cpp"
+        ]
+    },
+    {
+        "id": "31350a7dbb5e325915153069dbd6497ee79111e0",
+        "author": "Amy Ojuka",
+        "timestamp": 1791461270,
+        "files": [
+            "src/git_miner.cpp"
+        ]
+    },
+    {
+        "id": "40398532685bee27df1676b38bdb7892a7fd91af",
+        "author": "Amy Ojuka",
+        "timestamp": 1791460318,
+        "files": [
+            "src/git_miner.cpp"
+        ]
+    },
+    {
+        "id": "b17ec2df991aeab72038561dcafe8673e932a661",
+        "author": "Amy Ojuka",
+        "timestamp": 1791455504,
+        "files": [
+            "src/semantic_parser.cpp"
+        ]
+    }
+]

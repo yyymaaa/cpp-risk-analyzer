@@ -1,0 +1,278 @@
+{
+    ".venv/lib/python3.14/site-packages/cffi/_cffi_errors.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.025664,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/cffi/_cffi_include.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/cffi/_embedding.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/cffi/parse_c_type.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.025664,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/__multiarray_api.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.01714,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/__ufunc_api.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.019768,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/_neighborhood_iterator_imp.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.01714,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/_numpyconfig.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.069479,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/_public_dtype_api_table.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/arrayobject.h": {
+        "fan_in": 1,
+        "fan_out": 1,
+        "pagerank": 0.019768,
+        "betweeness_centrality": 0.006061
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/arrayscalars.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/dtype_api.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.01714,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/halffloat.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/ndarrayobject.h": {
+        "fan_in": 1,
+        "fan_out": 2,
+        "pagerank": 0.030675,
+        "betweeness_centrality": 0.011111
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/ndarraytypes.h": {
+        "fan_in": 1,
+        "fan_out": 7,
+        "pagerank": 0.026909,
+        "betweeness_centrality": 0.013636
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_2_compat.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.026909,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_2_complexcompat.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_3kcompat.h": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_common.h": {
+        "fan_in": 2,
+        "fan_out": 1,
+        "pagerank": 0.028931,
+        "betweeness_centrality": 0.00303
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_cpu.h": {
+        "fan_in": 2,
+        "fan_out": 1,
+        "pagerank": 0.031709,
+        "betweeness_centrality": 0.00303
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_endian.h": {
+        "fan_in": 1,
+        "fan_out": 1,
+        "pagerank": 0.01714,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_math.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_no_deprecated_api.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/npy_os.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/numpyconfig.h": {
+        "fan_in": 2,
+        "fan_out": 1,
+        "pagerank": 0.065416,
+        "betweeness_centrality": 0.00404
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/random/bitgen.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/random/distributions.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/random/libdivide.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/ufuncobject.h": {
+        "fan_in": 0,
+        "fan_out": 2,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/include/numpy/utils.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.01714,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/_core/tests/data/generate_umath_validation_data.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/numpy/f2py/src/fortranobject.h": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/liblinear/_cython_blas_helpers.h": {
+        "fan_in": 2,
+        "fan_out": 0,
+        "pagerank": 0.054159,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/liblinear/linear.cpp": {
+        "fan_in": 0,
+        "fan_out": 3,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/liblinear/linear.h": {
+        "fan_in": 1,
+        "fan_out": 1,
+        "pagerank": 0.017803,
+        "betweeness_centrality": 0.000253
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/liblinear/tron.cpp": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/liblinear/tron.h": {
+        "fan_in": 2,
+        "fan_out": 1,
+        "pagerank": 0.029594,
+        "betweeness_centrality": 0.000758
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/libsvm/_svm_cython_blas_helpers.h": {
+        "fan_in": 2,
+        "fan_out": 0,
+        "pagerank": 0.039116,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/libsvm/libsvm_template.cpp": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/libsvm/svm.cpp": {
+        "fan_in": 1,
+        "fan_out": 3,
+        "pagerank": 0.025664,
+        "betweeness_centrality": 0.001515
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/libsvm/svm.h": {
+        "fan_in": 1,
+        "fan_out": 1,
+        "pagerank": 0.021144,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/svm/src/newrand/newrand.h": {
+        "fan_in": 2,
+        "fan_out": 0,
+        "pagerank": 0.025074,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/utils/src/MurmurHash3.cpp": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    ".venv/lib/python3.14/site-packages/sklearn/utils/src/MurmurHash3.h": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "pagerank": 0.025664,
+        "betweeness_centrality": 0.0
+    },
+    "git_mining/git_miner.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    },
+    "semantic/semantic_parser.cpp": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "pagerank": 0.013872,
+        "betweeness_centrality": 0.0
+    }
+}
